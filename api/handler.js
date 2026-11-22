@@ -2,8 +2,8 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { addDays, catalogue, localClock, orderFor, Problem, seatsAvailable, serviceSlots, validDate, validTime } from '../lib/bookings.js'
 import { authenticate, rateLimit, requireRole, staffCookie, staffRole } from '../lib/auth.js'
 import { confirmation, emailConfigured } from '../lib/email.js'
-import { exampleMenu } from '../lib/seed.js'
-import { getStore, preview } from '../lib/store.js'
+import { exampleMenu, initialState } from '../lib/seed.js'
+import { displayOnly, getStore, preview } from '../lib/store.js'
 import { contact, mediaPath, menuItems, number, settingsFrom, text } from '../lib/validation.js'
 
 const json = (res, status, data) => {
@@ -194,6 +194,10 @@ export default async function handler(req, res) {
     const path = url.pathname === '/api/handler' && routed ? routed.replace(/^\/+/, '') : url.pathname.slice(5)
     const method = req.method
     if (method !== 'GET') sameOrigin(req)
+    if (displayOnly) {
+      if (path === 'site' && method === 'GET') return json(res, 200, publicSite(initialState(false)))
+      throw new Problem(503, 'Spletne rezervacije in dostop za ekipo še niso vključeni.')
+    }
     if (path === 'session' && method === 'GET') return json(res, 200, { role: staffRole(req), preview })
     if (path === 'session' && method === 'DELETE') {
       res.setHeader('Set-Cookie', staffCookie(null))
