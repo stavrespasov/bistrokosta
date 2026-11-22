@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { addDays, catalogue, localClock, orderFor, Problem, seatsAvailable, serviceSlots, validDate, validTime } from '../lib/bookings.js'
 import { authenticate, rateLimit, requireRole, staffCookie, staffRole } from '../lib/auth.js'
 import { confirmation, emailConfigured } from '../lib/email.js'
+import { currentPhotos } from '../lib/photos.js'
 import { exampleMenu, initialState } from '../lib/seed.js'
 import { displayOnly, getStore, preview } from '../lib/store.js'
 import { contact, mediaPath, menuItems, number, settingsFrom, text } from '../lib/validation.js'
@@ -204,7 +205,7 @@ export default async function handler(req, res) {
       return json(res, 200, { ok: true })
     }
     const store = await getStore()
-    if (path === 'site' && method === 'GET') return json(res, 200, publicSite(await store.read()))
+    if (path === 'site' && method === 'GET') return json(res, 200, publicSite(currentPhotos(await store.read())))
     if (path === 'session' && method === 'POST') {
       await rateLimit(store, req, 'login', 8, 15 * 60_000)
       const { role, password } = await body(req)
@@ -213,7 +214,7 @@ export default async function handler(req, res) {
       return json(res, 200, { role })
     }
     if (path === 'availability' && method === 'GET') {
-      const state = await store.read()
+      const state = currentPhotos(await store.read())
       const date = selectedDate(url)
       const party = number(Number(url.searchParams.get('party')), 1, state.settings.maxParty)
       const slots = serviceSlots(state.settings, date).filter(time => seatsAvailable(state, date, time, party))
@@ -239,7 +240,7 @@ export default async function handler(req, res) {
     }
     if (path === 'content' && method === 'GET') {
       requireRole(req, 'owner')
-      const state = await store.read()
+      const state = currentPhotos(await store.read())
       return json(res, 200, {
         settings: state.settings, gallery: state.gallery, regular: state.regular, daily: state.daily[selectedDate(url)] ?? null,
         dailyDates: Object.keys(state.daily).sort(), example: exampleMenu, preview, emailConfigured: emailConfigured(), today: localClock()[0]

@@ -62,14 +62,11 @@ function applySite(next) {
     }
     for (const [selector, key] of [['#hero-image', 'hero'], ['#story-image', 'storyPhoto'], ['#terrace-image', 'terracePhoto']]) {
       if (mediaPath(settings[key])) {
-        const legacy = ['hero', 'storyPhoto'].includes(key) && ['/media/service-soup.webp', '/media/kosta-soup.webp', '/media/kosta-steam.webp'].includes(settings[key])
-        if (key === 'hero' && !legacy && settings[key] !== '/media/jadran.webp') {
-          $(selector).removeAttribute('srcset')
-          $(selector).alt = 'Bistro Kóšta'
-        }
-        $(selector).src = legacy ? (key === 'hero' ? '/media/jadran.webp' : '/media/focaccia.webp') : settings[key]
+        $(selector).src = settings[key]
+        if (settings[key].startsWith('/api/media/')) $(selector).alt = 'Bistro Kóšta'
       }
     }
+    text('#strip-address', settings.address)
     const dial = settings.phone.replace(/[^\d+]/g, '').replace(/^0/, '+386')
     for (const link of $$('[data-phone]')) {
       link.textContent = settings.phone
@@ -94,6 +91,7 @@ function applySite(next) {
   $('#phone-booking').hidden = !phoneOnly
   const weekday = new Date(next.today + 'T12:00:00Z').getUTCDay()
   text('#booking-hours', settings.hours[weekday].map(period => period.join('–')).join(' / ') || 'Zaprto')
+  text('#strip-hours', $('#booking-hours').textContent)
   if (phoneOnly) {
     started = false
     availabilityRequest?.abort()
