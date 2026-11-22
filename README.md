@@ -9,6 +9,8 @@ Run `npm ci` and `npm run dev` with Node.js 24. Open [the website](http://127.0.
 - **Kuhinja** — portions grouped by service time, followed by table tickets with party size, guest requests, and kitchen notes. Advance tickets through preparation, ready and served. The screen updates every 10 seconds and omits guest contact details.
 - **Fotografije** — upload or replace gallery and headline images, change captions, and reorder the gallery. Uploads are resized and stored with the site data.
 
+Add `?demo=1` to the site, owner dashboard, or kitchen URL to try the booking workflow with fictional data. These views share a store in the same browser. The kitchen link on the owner dashboard opens the selected service date.
+
 ## Vercel and email
 
 Import the repository in Vercel and use its Node.js 24 runtime. Set the values in [`.env.example`](.env.example) in Vercel. `DATABASE_URL` points to a durable PostgreSQL database with permission to create the two Bistro tables on first use. Use a long random `SESSION_SECRET` and distinct staff passwords of at least 12 characters. For Resend, verify the sending domain and set `RESEND_API_KEY` and `RESERVATION_FROM` (for example, `Bistro Kóšta <reservations@example.com>`).

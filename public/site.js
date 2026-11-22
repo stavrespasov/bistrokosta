@@ -1,4 +1,4 @@
-import { $, $$, api, dateLabel, mediaPath, node, price, say } from './ui.js'
+import { $, $$, api, dateLabel, mediaPath, node, price, say, hostedReview } from './ui.js'
 
 const form = $('#booking-form')
 const times = $('#times')
@@ -13,6 +13,7 @@ let bookingMenu
 let availabilityRequest
 let submissionKey
 let started = false
+let bookingDemo = false
 
 function menuRow(item) {
   const description = item.description && node('span', { className: 'subtle' }, item.description)
@@ -26,7 +27,6 @@ function menuRow(item) {
 function paintMenu() {
   if (!site) return
   let items = site.menu[menuTab]
-  text('#menu-kind', menuTab === 'daily' ? 'Dnevni meni' : 'Stalna ponudba')
   const example = menuTab === 'daily' && !items.length && site.example.length
   if (example) items = site.example
   text('#menu-date', menuTab === 'daily' ? (example ? 'PRIMER · 15. APRIL' : dateLabel(site.today)) : '')
@@ -61,7 +61,14 @@ function applySite(next) {
       text(selector, settings[key])
     }
     for (const [selector, key] of [['#hero-image', 'hero'], ['#story-image', 'storyPhoto'], ['#terrace-image', 'terracePhoto']]) {
-      if (mediaPath(settings[key])) $(selector).src = settings[key]
+      if (mediaPath(settings[key])) {
+        const legacy = ['hero', 'storyPhoto'].includes(key) && ['/media/service-soup.webp', '/media/kosta-soup.webp', '/media/kosta-steam.webp'].includes(settings[key])
+        if (key === 'hero' && !legacy && settings[key] !== '/media/jadran.webp') {
+          $(selector).removeAttribute('srcset')
+          $(selector).alt = 'Bistro Kóšta'
+        }
+        $(selector).src = legacy ? (key === 'hero' ? '/media/jadran.webp' : '/media/focaccia.webp') : settings[key]
+      }
     }
     const dial = settings.phone.replace(/[^\d+]/g, '').replace(/^0/, '+386')
     for (const link of $$('[data-phone]')) {
@@ -73,16 +80,35 @@ function applySite(next) {
   }
   if (JSON.stringify(previous?.gallery) !== JSON.stringify(next.gallery)) {
     $('#galerija').hidden = !next.gallery.length
-    $('.gallery-controls').hidden = next.gallery.length < 2
+    $('#gallery-more').hidden = next.gallery.length <= 3
     $('#gallery').replaceChildren(...next.gallery.filter(photo => mediaPath(photo.src)).map(photo => node('figure', {},
-      node('img', { src: photo.src, alt: photo.alt, loading: 'lazy' }), node('figcaption', {}, photo.alt))))
+      node('button', { type: 'button', className: 'photo-open', 'aria-label': 'Povečaj fotografijo: ' + photo.alt,
+        onclick: () => {
+          $('#photo-full').src = photo.src
+          text('#photo-title', photo.alt)
+          $('#photo-dialog').showModal()
+        } }, node('img', { src: photo.src, alt: '', loading: 'lazy' })),
+      node('figcaption', {}, photo.alt))))
   }
-  if (!settings.bookingOpen) {
-    form.hidden = true
-    say($('#booking-unavailable'), 'Za rezervacijo mize nas pokličite na ' + settings.phone + '.')
+  const phoneOnly = !hostedReview && !settings.bookingOpen
+  $('#phone-booking').hidden = !phoneOnly
+  const weekday = new Date(next.today + 'T12:00:00Z').getUTCDay()
+  text('#booking-hours', settings.hours[weekday].map(period => period.join('–')).join(' / ') || 'Zaprto')
+  if (phoneOnly) {
     started = false
+    availabilityRequest?.abort()
+    form.hidden = true
+    $('#booking-unavailable').hidden = true
     return
   }
+  const nextDemo = hostedReview
+  if (started && nextDemo !== bookingDemo) {
+    started = false
+    form.reset()
+    showStep(1)
+  }
+  bookingDemo = nextDemo
+  $('#rezervacija').classList.toggle('review-booking', bookingDemo)
   if (!started && $('#receipt').hidden) {
     $('#booking-unavailable').hidden = true
     form.hidden = false
@@ -94,7 +120,7 @@ function applySite(next) {
     form.elements.party.value = String(Math.min(2, settings.maxParty))
     submissionKey = crypto.randomUUID()
     started = true
-    availability()
+    availability({ firstVisit: true })
   }
 }
 
@@ -108,7 +134,7 @@ async function refreshSite() {
   }
 }
 
-async function availability({ keepTime = false } = {}) {
+async function availability({ keepTime = false, firstVisit = false } = {}) {
   availabilityRequest?.abort()
   const request = new AbortController()
   availabilityRequest = request
@@ -125,6 +151,12 @@ async function availability({ keepTime = false } = {}) {
   try {
     const result = await api('availability?' + new URLSearchParams({ date, party }), { signal: request.signal })
     if (request.signal.aborted) return
+    if (firstVisit && !result.slots.length && date < form.elements.date.max) {
+      const tomorrow = new Date(date + 'T12:00:00Z')
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
+      form.elements.date.value = tomorrow.toISOString().slice(0, 10)
+      return availability()
+    }
     bookingMenu = result.menu
     if (!result.slots.includes(chosenTime)) chosenTime = undefined
     times.replaceChildren(...(result.slots.length ? result.slots.map(time => node('button', {
@@ -184,13 +216,9 @@ for (const button of $$('[data-menu]')) button.addEventListener('click', () => {
   menuTab = button.dataset.menu
   for (const tab of $$('[data-menu]')) tab.setAttribute('aria-pressed', tab === button)
   paintMenu()
-})
-
-for (const button of $$('[data-gallery-scroll]')) button.addEventListener('click', () => {
-  const gallery = $('#gallery')
-  if (!gallery.firstElementChild) return
-  gallery.scrollBy({ left: Number(button.dataset.galleryScroll) * (gallery.firstElementChild.offsetWidth + 16),
-    behavior: reducedMotion.matches ? 'instant' : 'smooth' })
+  if (!reducedMotion.matches) $('#menu-items').animate(
+    [{ opacity: .3, transform: 'translateY(5px)' }, { opacity: 1, transform: 'translateY(0)' }],
+    { duration: 240, easing: 'ease-out' })
 })
 
 form.elements.date.addEventListener('change', () => availability())
@@ -229,10 +257,11 @@ form.addEventListener('submit', async event => {
       : result.emailStatus === 'preview' ? 'Poskusna rezervacija je shranjena. Pošiljanje e-pošte je v predogledu izklopljeno.'
       : 'Vaša miza je potrjena. Shranite si številko rezervacije.'
     receipt.replaceChildren(
-      node('h3', { tabIndex: -1 }, pending ? 'Zahteva je prejeta.' : 'Miza je vaša.'),
+      node('h3', { tabIndex: -1 }, bookingDemo ? 'Preizkus je uspel.' : pending ? 'Zahteva je prejeta.' : 'Miza je vaša.'),
       node('p', {}, dateLabel(result.date) + ' · ' + result.time + ' · ' + result.party + ' oseb'),
       node('p', { className: 'receipt-code' }, result.reference),
-      node('p', {}, message),
+      node('p', {}, bookingDemo ? 'Poskusna rezervacija je vidna v pultu in kuhinji tega brskalnika.' : message),
+      bookingDemo ? node('a', { className: 'button secondary', href: '/admin?demo=1&date=' + result.date }, 'Odpri pult →') : null,
       node('button', { className: 'plain', onclick: () => {
         receipt.hidden = true
         form.reset()
@@ -275,22 +304,13 @@ refreshSite()
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshSite() })
 setInterval(() => { if (!document.hidden) refreshSite() }, 10_000)
 
-const navToggle = $('.nav-toggle')
-function closeNav() {
-  navToggle.setAttribute('aria-expanded', 'false')
-  navToggle.setAttribute('aria-label', 'Odpri navigacijo')
-  $('.masthead').classList.remove('expanded')
-}
-navToggle.addEventListener('click', () => {
-  if (navToggle.getAttribute('aria-expanded') === 'true') return closeNav()
-  navToggle.setAttribute('aria-expanded', 'true')
-  navToggle.setAttribute('aria-label', 'Zapri navigacijo')
-  $('.masthead').classList.add('expanded')
+
+$('#gallery-more').addEventListener('click', event => {
+  const expanded = $('#gallery').classList.toggle('expanded')
+  event.currentTarget.setAttribute('aria-expanded', String(expanded))
+  event.currentTarget.textContent = expanded ? 'Pokaži manj' : 'Vse fotografije'
 })
-$('#nav').addEventListener('click', closeNav)
-document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && navToggle.getAttribute('aria-expanded') === 'true') {
-    closeNav()
-    navToggle.focus()
-  }
+
+$('#photo-dialog').addEventListener('click', event => {
+  if (event.target === event.currentTarget) event.currentTarget.close()
 })

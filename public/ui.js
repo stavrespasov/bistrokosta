@@ -17,9 +17,27 @@ export function node(tag, properties = {}, ...children) {
   return element
 }
 
+export const hostedReview = new URLSearchParams(location.search).get('demo') === '1'
+let reviewTransport
+
+async function startReview() {
+  document.documentElement.classList.add('review')
+  if (!navigator.serviceWorker) throw new Error('Za interaktivni predogled odprite stran v sodobnem brskalniku.')
+  await navigator.serviceWorker.register('/review-worker.js')
+  await navigator.serviceWorker.ready
+  if (!navigator.serviceWorker.controller) await new Promise(resolve => {
+    navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true })
+  })
+  return '/review-api/'
+}
+
 export async function api(path, { method = 'GET', body, signal } = {}) {
-  const response = await fetch('/api/' + path, {
-    method, signal, headers: body ? { 'Content-Type': 'application/json' } : {},
+  if (hostedReview) reviewTransport ??= startReview().catch(error => { reviewTransport = undefined; throw error })
+  const prefix = hostedReview ? await reviewTransport : '/api/'
+  const headers = body ? { 'Content-Type': 'application/json' } : {}
+  if (prefix === '/review-api/') headers['X-Review-Role'] = location.pathname === '/admin' ? 'owner' : location.pathname === '/kitchen' ? 'kitchen' : 'guest'
+  const response = await fetch(prefix + path, {
+    method, signal, headers,
     body: body ? JSON.stringify(body) : undefined
   })
   const result = await response.json().catch(() => ({}))

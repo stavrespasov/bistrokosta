@@ -1,4 +1,4 @@
-import { $, $$, api, dateLabel, dateToday, mediaPath, node, price, say } from './ui.js'
+import { $, $$, api, dateLabel, dateToday, mediaPath, node, price, say, hostedReview } from './ui.js'
 
 const kitchen = location.pathname === '/kitchen'
 const roleNeeded = kitchen ? 'kitchen' : 'owner'
@@ -23,7 +23,8 @@ let role
 let dirty = false
 let edit
 let writes = 0
-let date = dateToday()
+const requestedDate = new URLSearchParams(location.search).get('date')
+let date = /^20\d{2}-\d{2}-\d{2}$/.test(requestedDate || '') ? requestedDate : dateToday()
 dateInput.value = date
 
 const btn = (label, handler, classes = 'button secondary small') => node('button', { type: 'button', className: classes, onclick: handler }, label)
@@ -77,6 +78,8 @@ function go(next, nextDate = date) {
   view = next
   date = nextDate
   dateInput.value = date
+  $('#kitchen-link').href = '/kitchen?' + (hostedReview ? 'demo=1&' : '') + 'date=' + date
+  $('#owner-link').href = '/admin?' + (hostedReview ? 'demo=1&' : '') + 'date=' + date
   say(notice, '')
   for (const button of $$('[data-view]')) button.setAttribute('aria-pressed', button.dataset.view === view)
   $('#staff-title').textContent = kitchen ? 'Servis.' : titles[view]
@@ -488,12 +491,16 @@ async function boot() {
     $('#startup').hidden = true
     $('#signin').hidden = allowed
     $('#workspace').hidden = !allowed
-    $('#logout').hidden = !role
-    $('#owner-link').hidden = role !== 'owner' || !kitchen
+    $('#logout').hidden = !role || hostedReview
+    $('#owner-link').hidden = !kitchen || (!hostedReview && role !== 'owner')
     $('#kitchen-link').hidden = role !== 'owner' || kitchen
     $('#owner-nav').hidden = kitchen || role !== 'owner'
     $('#signin-title').textContent = kitchen ? 'Kuhinja.' : 'Upravljanje.'
     say($('#preview-login'), session.preview ? 'Lokalni predogled · geslo: kosta-' + roleNeeded + '-demo' : '')
+    if (kitchen) {
+      $('#preview-link').href = '/kitchen?demo=1'
+      $('#preview-link').textContent = 'Odpri poskusno kuhinjo →'
+    }
     if (!allowed) return
     document.body.classList.toggle('kitchen', kitchen)
     if (kitchen) $('#staff-eyebrow').textContent = 'KUHINJA · KÓŠTA'

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <meta name="theme-color" content="#251c16">
+  <meta name="theme-color" content="#142d48">
   <title>Bistro Kóšta — Za ekipo</title>
   <link rel="icon" href="/media/mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/base.css">
@@ -24,6 +24,7 @@
         <label>Geslo<input name="password" type="password" autocomplete="current-password" required maxlength="500"></label>
         <button class="button primary" type="submit">Prijava</button>
       </form>
+      <a class="underlink" id="preview-link" href="/admin?demo=1">Odpri poskusni pult →</a>
       <p id="preview-login" class="subtle" hidden></p>
       <p id="login-error" class="error" role="alert" hidden></p>
     </section>
@@ -36,6 +37,7 @@
           <button id="today" type="button" class="button secondary small">Danes</button>
         </div>
       </div>
+      <p class="review-only demo-note">Poskusni servis · spremembe so vidne samo v tem brskalniku.</p>
       <nav id="owner-nav" class="staff-nav" aria-label="Upravljanje" hidden>
         <button type="button" data-view="reservations" aria-pressed="true">Rezervacije</button>
         <button type="button" data-view="daily" aria-pressed="false">Dnevni meni</button>

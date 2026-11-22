@@ -2,11 +2,22 @@
   "name": "bistrokosta",
   "private": true,
   "type": "module",
-  "engines": { "node": "24.x" },
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "node --env-file-if-exists=.env server.js",
     "start": "node --env-file-if-exists=.env server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "build": "node review/build.js",
+    "predev": "npm run build",
+    "prestart": "npm run build"
   },
-  "dependencies": { "pg": "8.23.1" }
+  "dependencies": {
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "buffer": "^6.0.3",
+    "esbuild": "^0.28.2"
+  }
 }

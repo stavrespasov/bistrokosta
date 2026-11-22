@@ -3,43 +3,40 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#253429">
+  <meta name="theme-color" content="#ebf3fb">
   <meta name="description" content="Bistro Kóšta v Kopru. Dnevne malice, domača focaccia in sezonska kuhinja. Poglejte meni in rezervirajte mizo na Ferrarski ulici 5B.">
-  <title>Bistro Kóšta — Marende v Kopru</title>
+  <title>Bistro Kóšta — Dobra kóšta v Kopru</title>
   <link rel="icon" href="/media/mark.svg" type="image/svg+xml">
-  <link rel="preload" href="/fonts/jizBRFtNs2ka5fXjeivQ4LroWlx-6zUTjg.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/base.css">
   <link rel="stylesheet" href="/site.css">
   <script type="module" src="/site.js"></script>
 </head>
 <body>
-<a class="skip" href="#main">Preskoči na vsebino</a>
-<header class="masthead"><a class="brand" href="/" aria-label="Bistro Kóšta, domov"><img src="/media/mark.svg" width="70" height="63" alt=""><span>Bistro <b>Kóšta</b></span></a>
-<nav id="nav" aria-label="Glavna navigacija"><a href="#meni">Jedilnik</a><a href="#zgodba">Naša kuhinja</a><a href="#obisk">Obiščite nas</a></nav>
-<a class="reserve" href="#rezervacija">Rezerviraj mizo</a><button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav" aria-label="Odpri navigacijo"><i></i><i></i></button>
-</header>
-<main id="main">
-<section class="hero" aria-labelledby="hero-title">
-<div class="hero-photo"><img id="hero-image" src="/media/service-soup.webp" alt="Skleda juhe na pogrnjeni mizi" fetchpriority="high"></div>
-<div class="hero-body"><p class="place"><span></span>KOPER &nbsp;/&nbsp; CAPODISTRIA</p>
-<h1 id="hero-title">Čas za<br><em>marendo.</em></h1>
-<p id="intro">Dnevne malice, domača focaccia in nekaj dobrega na žlico. Vsak dan na Ferrarski v Kopru.</p>
-<a class="menu-link" href="#meni"><span class="dish-icon" aria-hidden="true"></span>Poglej jedilnik</a></div>
-<div class="hero-sign" aria-hidden="true"><img src="/media/rim.svg" width="120" height="120" alt=""><img src="/media/mark.svg" width="52" height="49" alt=""></div>
-</section>
-<div class="service-line"><span>Malice &amp; kosila</span><i></i><span>Domača focaccia</span><i></i><span>Sveže iz Kopra</span><i></i><span>Terasa za družbe</span></div>
-<section class="menu-section wrap" id="meni" aria-labelledby="menu-title"><div class="menu-aside reveal"><p class="kicker">Na krožniku</p><h2 id="menu-title">Jedilnik<span>.</span></h2><div class="tabbar" role="group" aria-label="Vrste menija"><button type="button" data-menu="daily" aria-pressed="true">Dnevni meni</button><button type="button" data-menu="regular" aria-pressed="false">Stalna ponudba</button></div><p id="delivery">Dostava po Kopru do 11.00 ali po 13.00.</p></div>
-<div class="menu-paper reveal"><div class="paper-top"><span id="menu-kind">Dnevni meni</span><span id="menu-date"></span></div><div id="menu-items" aria-live="polite"><p class="empty">Nalagamo meni …</p></div></div></section>
-<section class="story" id="zgodba"><figure class="story-image reveal"><img id="story-image" src="/media/focaccia.webp" alt="Roke oblikujejo testo za focaccio" loading="lazy"></figure><div class="story-copy reveal"><p class="kicker">Iz naše kuhinje</p><h2>Vsak dan<br><em>zamesimo.</em></h2><p id="story-text"></p><a class="story-link" href="#obisk">Obiščite nas</a></div></section>
-<section class="gallery-section wrap" id="galerija"><div class="gallery-heading"><h2 class="reveal">Pri <em>Kóšti.</em></h2><div class="gallery-controls"><button class="round" data-gallery-scroll="-1" aria-label="Prejšnja fotografija">‹</button><button class="round" data-gallery-scroll="1" aria-label="Naslednja fotografija">›</button></div></div><div id="gallery" class="gallery" tabindex="0" aria-label="Fotografije iz kuhinje"></div></section>
-<section class="booking" id="rezervacija">
-      <div class="booking-intro reveal">
-        <p class="eyebrow">REZERVACIJE</p>
-        <h2>Prihranimo vam <em>mizo.</em></h2>
-        <p>Izberite termin in število gostov. Če že veste, kaj bi jedli, lahko jedi dodate ob rezervaciji.</p>
-        <p><a data-phone class="underlink" href="tel:+38670172114">070 172 114</a></p>
+  <a class="skip" href="#main">Preskoči na vsebino</a>
+  <header class="masthead">
+    <a href="/" class="wordmark" aria-label="Bistro Kóšta, domov"><span aria-hidden="true" class="bowl-mark"></span><span>Bistro <b>Kóšta</b></span></a>
+    <nav aria-label="Glavna navigacija">
+      <a href="#meni">Meni</a><a href="#zgodba">O nas</a><a href="#obisk">Obisk</a>
+    </nav>
+    <a class="button small primary" href="#rezervacija">Rezerviraj <span aria-hidden="true">→</span></a>
+  </header>
+  <main id="main">
+    <section class="landing">
+      <div class="poster">
+        <div class="poster-type"><p>Bistro na Ferrarski</p><h1 aria-label="Kóšta"><span aria-hidden="true">K</span><span aria-hidden="true">Ó</span><span aria-hidden="true">Š</span><span aria-hidden="true">T</span><span aria-hidden="true">A</span></h1></div>
+        <img id="hero-image" src="/media/jadran.webp" alt="Modra grafika sardel na krožniku z limono" srcset="/media/jadran-small.webp 720w, /media/jadran.webp 1500w" sizes="(max-width:800px) 92vw, 55vw" width="1500" height="1000" fetchpriority="high">
+        <div class="poster-foot"><span>Koper / Capodistria</span><a href="#meni">Na meni ↓</a></div>
       </div>
-      <div class="booking-card reveal">
+      <div class="booking" id="rezervacija">
+      <div class="booking-card">
+        <div class="booking-title"><h2>Rezerviraj mizo</h2><p class="review-only demo-note">Poskusni obrazec. Uporabite izmišljene podatke. Za obisk pokličite <a data-phone href="tel:+38670172114">070 172 114</a>.</p></div>
+        <div id="phone-booking" hidden>
+          <p>Trenutno sprejemamo rezervacije po telefonu.</p>
+          <a data-phone class="booking-phone" href="tel:+38670172114">070 172 114</a>
+          <div class="phone-hours"><span>Danes</span><strong id="booking-hours"></strong></div>
+          <a class="button primary wide" href="/?demo=1#rezervacija">Preizkusi spletno rezervacijo <span aria-hidden="true">→</span></a>
+        </div>
         <p id="booking-unavailable" class="empty">Nalagamo razpoložljivost …</p>
         <form id="booking-form" hidden>
           <div class="step-top"><span class="eyebrow" id="step-count">1 / 3</span><span id="step-label">Termin</span></div>
@@ -50,13 +47,13 @@
               <label>Gostje<select name="party" required></select></label>
             </div>
             <fieldset id="time-field"><legend>Proste ure</legend><div id="times" class="times" aria-live="polite"></div></fieldset>
-            <button type="button" class="button primary wide" id="to-dishes" disabled>Nadaljuj</button>
+            <button type="button" class="button primary wide" id="to-dishes" disabled>Nadaljuj <span aria-hidden="true">→</span></button>
           </div>
           <div class="booking-step" data-step="2" hidden>
             <h3>Kaj boste jedli?</h3>
             <p class="subtle">Jedi lahko izberete zdaj ali naročite ob obisku.</p>
             <div id="booking-dishes"></div>
-            <div class="step-actions"><button type="button" class="plain" data-back="1">Nazaj</button><button type="button" class="button primary" id="to-contact">Nadaljuj</button></div>
+            <div class="step-actions"><button type="button" class="plain" data-back="1">← Nazaj</button><button type="button" class="button primary" id="to-contact">Nadaljuj →</button></div>
           </div>
           <div class="booking-step" data-step="3" hidden>
             <h3>Na čigavo ime?</h3>
@@ -67,18 +64,76 @@
                 <label>E-pošta<input name="email" type="email" autocomplete="email" required maxlength="180"></label>
                 <label>Telefon<input name="phone" type="tel" autocomplete="tel" required maxlength="32"></label>
               </div>
-              <label>Opomba za ekipo in kuhinjo <span class="subtle">(neobvezno)</span><textarea name="notes" maxlength="500" rows="2" placeholder="Npr. otroški stolček ali alergija"></textarea></label>
+              <label>Opomba <span class="subtle">(neobvezno)</span><textarea name="notes" maxlength="500" rows="2" placeholder="Npr. otroški stolček ali alergija"></textarea></label>
               <label class="check"><input type="checkbox" name="consent" required><span>Soglašam z uporabo kontaktnih podatkov za urejanje in potrditev rezervacije.</span></label>
             </div>
-            <div class="step-actions"><button type="button" class="plain" data-back="2">Nazaj</button><button type="submit" class="button primary">Pošlji rezervacijo</button></div>
+            <div class="step-actions"><button type="button" class="plain" data-back="2">← Nazaj</button><button type="submit" class="button primary">Pošlji rezervacijo →</button></div>
           </div>
           <p id="booking-error" role="alert" class="error" hidden></p>
         </form>
         <div id="receipt" hidden aria-live="polite"></div>
       </div>
+
+
+      </div>
+    </section>
+    <section class="intro-line wrap"><p id="intro">Dnevne malice, domača focaccia in nekaj dobrega na žlico.</p></section>
+    <section class="menu-section wrap" id="meni" aria-labelledby="menu-title">
+      <div class="menu-heading reveal">
+        <div><p class="eyebrow"><span class="dot"></span> IZ KUHINJE</p><h2 id="menu-title">Na meniju</h2></div>
+        <p id="delivery">Dostava po Kopru do 11.00 ali po 13.00.</p>
+      </div>
+      <div class="menu-sheet reveal">
+        <div class="menu-sheet-top">
+          <div class="tabbar" role="group" aria-label="Vrste menija">
+            <button type="button" data-menu="daily" aria-pressed="true">Dnevni meni</button>
+            <button type="button" data-menu="regular" aria-pressed="false">Stalna ponudba</button>
+          </div>
+          <p id="menu-date" class="eyebrow"></p>
+        </div>
+        <div id="menu-items" aria-live="polite"><p class="empty">Nalagamo meni …</p></div>
+      </div>
     </section>
 
+    <section class="story" id="zgodba">
+      <figure class="story-art reveal">
+        <img id="story-image" src="/media/focaccia.webp" alt="Priprava testa za focaccio" loading="lazy" width="150" height="188">
+      </figure>
+      <div class="story-copy reveal">
+        <p class="eyebrow">NA FERRARSKI</p>
+        <h2>Iz naše peči</h2>
+        <p id="story-text">Testo za focaccio zamesimo in spečemo sami. Tudi njoki in olivni pesto nastanejo v naši kuhinji. Kadar zadiši po govejem golažu, ga postrežemo s še toplo focaccio.</p>
+        <a href="#obisk" class="underlink">Kako do nas <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
 
-<section class="visit wrap" id="obisk"><div class="visit-copy reveal"><p class="kicker">Koper / Capodistria</p><h2>Pridite <em>mimo.</em></h2><p id="address">Ferrarska ulica 5B, 6000 Koper</p><a id="directions" href="https://www.google.com/maps/search/?api=1&amp;query=Ferrarska+5B+Koper">Odpri zemljevid</a><dl class="hours" id="hours"></dl><h3>Terasa za družbe</h3><p id="terrace-text"></p><a data-phone href="tel:+38670172114">070 172 114</a></div><figure class="reveal"><img id="terrace-image" src="/media/kosta-terrace.webp" alt="Bistro Kóšta na Ferrarski ulici" loading="lazy"></figure></section>
-</main><footer><a class="brand" href="/" aria-label="Bistro Kóšta, domov"><img src="/media/mark.svg" width="70" height="63" alt=""><span>Bistro <b>Kóšta</b></span></a><span>Koper · Slovenija</span><a href="/admin">Za ekipo</a></footer>
-</body></html>
+    <section class="gallery-section wrap" id="galerija">
+      <div class="gallery-heading reveal"><button id="gallery-more" aria-controls="gallery" aria-expanded="false" type="button" class="plain" hidden>Vse fotografije</button>
+        <h2>Iz kuhinje</h2>
+      </div>
+      <div class="gallery reveal" id="gallery" aria-label="Fotografije bistroja">
+      </div>
+    </section>
+
+    <section class="visit wrap" id="obisk">
+      <figure class="visit-image reveal"><img id="terrace-image" src="/media/kosta-terrace.webp" alt="Bistro Kóšta z mizami pred vhodom" loading="lazy" width="320" height="240"></figure>
+      <div class="visit-copy reveal">
+        <p class="eyebrow"><span class="dot"></span> KOPER · CAPODISTRIA</p>
+        <h2>Obiščite nas</h2>
+        <p id="address">Ferrarska ulica 5B, 6000 Koper</p>
+        <a class="underlink" id="directions" href="https://www.google.com/maps/search/?api=1&amp;query=Ferrarska%20ulica%205B%2C%206000%20Koper">Odpri zemljevid →</a>
+        <dl class="hours" id="hours">
+          <div><dt>Pon–tor</dt><dd>09.00–15.00</dd></div>
+          <div><dt>Sre–sob</dt><dd>09.00–15.00 · 18.00–22.00</dd></div>
+          <div><dt>Ned</dt><dd>11.00–16.00</dd></div>
+        </dl>
+        <h3>Terasa za zaključene družbe</h3>
+        <p id="terrace-text">Za rojstne dneve, obletnice in skupna kosila. Na terasi je prostora za 47 gostov.</p>
+        <a data-phone class="underlink" href="tel:+38670172114">070 172 114</a>
+      </div>
+    </section>
+  </main>
+  <dialog id="photo-dialog" aria-labelledby="photo-title"><form method="dialog"><button aria-label="Zapri fotografijo" autofocus>Zapri ×</button></form><figure><img id="photo-full" alt=""><figcaption id="photo-title"></figcaption></figure></dialog>
+  <footer><a href="/" class="wordmark"><span aria-hidden="true" class="bowl-mark"></span><span>Bistro <b>Kóšta</b></span></a><span>Ferrarska 5B · Koper</span><nav aria-label="Za ekipo"><a href="/admin">Za ekipo</a> · <a href="/admin?demo=1">Preizkus pulta</a> · <a href="/kitchen?demo=1">Preizkus kuhinje</a></nav></footer>
+</body>
+</html>

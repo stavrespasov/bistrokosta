@@ -3,6 +3,7 @@
   "framework": null,
   "regions": ["fra1"],
   "outputDirectory": "public",
+  "buildCommand": "npm run build",
   "rewrites": [
     { "source": "/admin", "destination": "/staff.html" },
     { "source": "/kitchen", "destination": "/staff.html" },
