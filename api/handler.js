@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto'
-import { addDays, catalogue, localClock, orderFor, Problem, seatsAvailable, serviceSlots, validDate } from '../lib/bookings.js'
+import { addDays, catalogue, localClock, orderFor, Problem, seatsAvailable, serviceSlots, validDate, validTime } from '../lib/bookings.js'
 import { authenticate, rateLimit, requireRole, staffCookie, staffRole } from '../lib/auth.js'
 import { confirmation, emailConfigured } from '../lib/email.js'
 import { exampleMenu } from '../lib/seed.js'
@@ -97,7 +97,7 @@ async function reserve(store, req) {
       date, time, party, duration: state.settings.duration, items,
       status: state.settings.autoConfirm ? 'confirmed' : 'pending',
       kitchenStatus: 'queued', emailStatus: 'waiting', confirmationVersion: 1,
-      staffNotes: '', createdAt: new Date().toISOString()
+      staffNotes: '', table: '', createdAt: new Date().toISOString()
     }
     state.reservations.push(ticket)
     return ticket
@@ -113,7 +113,7 @@ function board(state, date, role) {
   if (role === 'owner') return reservations.map(({ key, emailLease, emailLeaseUntil, ...record }) => record)
   return reservations.filter(r => ['confirmed', 'seated', 'completed'].includes(r.status)).map(r => ({
     id: r.id, reference: r.reference, date: r.date, time: r.time, party: r.party,
-    status: r.status, items: r.items, kitchenStatus: r.kitchenStatus, staffNotes: r.staffNotes
+    status: r.status, items: r.items, kitchenStatus: r.kitchenStatus, staffNotes: r.staffNotes, table: r.table || ''
   }))
 }
 
@@ -137,9 +137,18 @@ async function changeTicket(store, req, id, role) {
     }
     if (input.details) {
       const { date, time, party, items } = input.details
-      if (!validDate(date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Problem(400, 'Preverite datum in uro.')
+      if (!validDate(date) || !validTime(time)) throw new Problem(400, 'Preverite datum in uro.')
       Object.assign(record, contact(input.details), { date, time, party: number(party, 1, 200) })
       if (items !== undefined) record.items = orderFor(state, date, items, record.party)
+      if (input.details.order !== undefined) {
+        const order = input.details.order
+        if (!Array.isArray(order) || order.length > 30) throw new Problem(400, 'Preverite seznam jedi.')
+        record.items = order.map(item => ({
+          id: text(item.id, 85, true), name: text(item.name, 180, true), quantity: number(item.quantity, 1, 150),
+          price: number(item.price, 0, 100000), allergens: text(item.allergens ?? '', 100)
+        }))
+      }
+      if (input.details.table !== undefined) record.table = text(input.details.table, 36)
       if (input.details.staffNotes !== undefined) record.staffNotes = text(input.details.staffNotes, 500)
     }
     const shifted = ['date', 'time', 'party'].some(field => old[field] !== record[field])
@@ -246,7 +255,11 @@ export default async function handler(req, res) {
           const items = menuItems(input.items)
           if (input.published && !items.some(item => item.active)) throw new Problem(400, 'Za objavo dodajte vsaj eno vidno jed.')
           state.daily[input.date] = { items, published: input.published === true }
-        } else if (input.section === 'gallery' && Array.isArray(input.gallery) && input.gallery.length <= 40) {
+        } else if (input.section === 'media' && Array.isArray(input.gallery) && input.gallery.length <= 40) {
+          for (const key of ['hero', 'storyPhoto', 'terracePhoto']) {
+            if (!mediaPath(input.photos?.[key])) throw new Problem(400, 'Izberite veljavno sliko.')
+            state.settings[key] = input.photos[key]
+          }
           state.gallery = input.gallery.map(photo => {
             if (!mediaPath(photo.src)) throw new Problem(400, 'Izberite veljavno sliko.')
             return { src: photo.src, alt: text(photo.alt, 100, true) }

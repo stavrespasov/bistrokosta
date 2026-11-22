@@ -28,7 +28,7 @@ function paintMenu() {
   let items = site.menu[menuTab]
   const example = menuTab === 'daily' && !items.length && site.example.length
   if (example) items = site.example
-  text('#menu-date', menuTab === 'daily' ? (example ? 'PRIMER · 15. APRIL' : dateLabel(site.today)) : 'STALNA PONUDBA')
+  text('#menu-date', menuTab === 'daily' ? (example ? 'PRIMER · 15. APRIL' : dateLabel(site.today)) : '')
   $('#menu-items').replaceChildren(
     ...(example ? [node('p', { className: 'menu-note' }, 'Današnji meni še ni objavljen. Spodaj je primer menija s 15. aprila.')] : []),
     items.length
@@ -70,7 +70,9 @@ function applySite(next) {
     $('#directions').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(settings.address)
     updateHours(settings.hours)
   }
-  if (next.gallery.length && JSON.stringify(previous?.gallery) !== JSON.stringify(next.gallery)) {
+  if (JSON.stringify(previous?.gallery) !== JSON.stringify(next.gallery)) {
+    $('#galerija').hidden = !next.gallery.length
+    $('.gallery-controls').hidden = next.gallery.length < 2
     $('#gallery').replaceChildren(...next.gallery.filter(photo => mediaPath(photo.src)).map(photo => node('figure', {},
       node('img', { src: photo.src, alt: photo.alt, loading: 'lazy' }), node('figcaption', {}, photo.alt))))
   }
@@ -149,6 +151,8 @@ function showStep(next) {
   const title = $(`[data-step="${next}"] h3`)
   title.tabIndex = -1
   title.focus({ preventScroll: true })
+  const position = title.getBoundingClientRect()
+  if (position.top < 84 || position.bottom > innerHeight - 25) title.scrollIntoView({ block: 'center', behavior: 'instant' })
 }
 
 function renderDishes() {
@@ -162,7 +166,7 @@ function renderDishes() {
     content.push(node('p', { className: 'eyebrow booking-group' }, label))
     for (const item of list) {
       const quantity = node('input', { type: 'number', min: '0', max: String(party * 3), value: '0', inputMode: 'numeric',
-        'data-dish': type + ':' + item.id, 'aria-label': 'Število porcij: ' + item.name })
+        'data-dish': type + ':' + item.id, 'data-price': item.price, 'aria-label': 'Število porcij: ' + item.name })
       content.push(node('label', { className: 'booking-dish' }, node('span', {},
         node('strong', {}, item.name), node('span', { className: 'subtle' }, price(item.price) + (item.allergens ? ' · Alergeni: ' + item.allergens : ''))), quantity))
     }
@@ -171,7 +175,7 @@ function renderDishes() {
 }
 
 function selections() {
-  return $$('[data-dish]').map(input => ({ id: input.dataset.dish, quantity: Number(input.value) }))
+  return $$('[data-dish]').map(input => ({ id: input.dataset.dish, quantity: Number(input.value), quotedPrice: Number(input.dataset.price) }))
     .filter(item => item.quantity > 0)
 }
 
@@ -183,6 +187,7 @@ for (const button of $$('[data-menu]')) button.addEventListener('click', () => {
 
 for (const button of $$('[data-gallery-scroll]')) button.addEventListener('click', () => {
   const gallery = $('#gallery')
+  if (!gallery.firstElementChild) return
   gallery.scrollBy({ left: Number(button.dataset.galleryScroll) * (gallery.firstElementChild.offsetWidth + 16),
     behavior: reducedMotion.matches ? 'instant' : 'smooth' })
 })

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="sl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#251c16">
+  <title>Bistro Kóšta — Za ekipo</title>
+  <link rel="icon" href="/media/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/base.css">
+  <link rel="stylesheet" href="/staff.css">
+  <script type="module" src="/staff.js"></script>
+</head>
+<body>
+  <header class="staff-header">
+    <a href="/" class="wordmark" aria-label="Spletna stran Bistro Kóšta"><span class="bowl-mark" aria-hidden="true"></span> BISTRO <b>KÓŠTA</b></a>
+    <div class="staff-links"><a href="/admin" id="owner-link" hidden>Upravljanje</a><a href="/kitchen" id="kitchen-link" hidden>Kuhinja →</a><button type="button" id="logout" class="plain" hidden>Odjava</button></div>
+  </header>
+  <main>
+    <section id="signin" class="signin" hidden>
+      <p class="eyebrow"><span class="dot"></span> ZA EKIPO</p>
+      <h1 id="signin-title">Upravljanje.</h1>
+      <form id="login-form" class="fields">
+        <label>Geslo<input name="password" type="password" autocomplete="current-password" required maxlength="500"></label>
+        <button class="button primary" type="submit">Prijava →</button>
+      </form>
+      <p id="preview-login" class="subtle" hidden></p>
+      <p id="login-error" class="error" role="alert" hidden></p>
+    </section>
+    <div id="workspace" hidden>
+      <div class="staff-title">
+        <div><p class="eyebrow" id="staff-eyebrow"><span class="dot"></span> UPRAVLJANJE</p><h1 id="staff-title">Rezervacije.</h1></div>
+        <div class="staff-tools">
+          <time id="service-clock"></time>
+          <label id="date-control">Datum<input id="service-date" type="date" required></label>
+          <button id="today" type="button" class="button secondary small">Danes</button>
+        </div>
+      </div>
+      <nav id="owner-nav" class="staff-nav" aria-label="Upravljanje" hidden>
+        <button type="button" data-view="reservations" aria-pressed="true">Rezervacije</button>
+        <button type="button" data-view="daily" aria-pressed="false">Dnevni meni</button>
+        <button type="button" data-view="regular" aria-pressed="false">Stalna ponudba</button>
+        <button type="button" data-view="media" aria-pressed="false">Fotografije</button>
+        <button type="button" data-view="settings" aria-pressed="false">Nastavitve</button>
+      </nav>
+      <p id="staff-message" class="notice" role="status" hidden></p>
+      <section id="panel" aria-label="Delovni pogled"></section>
+    </div>
+    <p id="startup" class="notice" role="status">Nalagamo …</p>
+  </main>
+  <dialog id="ticket-dialog" aria-labelledby="ticket-title">
+    <div class="dialog-top"><h2 id="ticket-title">Rezervacija</h2><form method="dialog"><button class="round" aria-label="Zapri">×</button></form></div>
+    <div id="ticket-dialog-body"></div>
+  </dialog>
+</body>
+</html>
