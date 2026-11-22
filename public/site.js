@@ -26,6 +26,7 @@ function menuRow(item) {
 function paintMenu() {
   if (!site) return
   let items = site.menu[menuTab]
+  text('#menu-kind', menuTab === 'daily' ? 'Dnevni meni' : 'Stalna ponudba')
   const example = menuTab === 'daily' && !items.length && site.example.length
   if (example) items = site.example
   text('#menu-date', menuTab === 'daily' ? (example ? 'PRIMER · 15. APRIL' : dateLabel(site.today)) : '')
@@ -266,6 +267,30 @@ if ('IntersectionObserver' in window && !reducedMotion.matches) {
     observer.observe(element)
   }
 }
+if ('BroadcastChannel' in window) {
+  const updates = new BroadcastChannel('kosta-menu')
+  updates.addEventListener('message', refreshSite)
+}
 refreshSite()
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshSite() })
-setInterval(() => { if (!document.hidden) refreshSite() }, 30_000)
+setInterval(() => { if (!document.hidden) refreshSite() }, 10_000)
+
+const navToggle = $('.nav-toggle')
+function closeNav() {
+  navToggle.setAttribute('aria-expanded', 'false')
+  navToggle.setAttribute('aria-label', 'Odpri navigacijo')
+  $('.masthead').classList.remove('expanded')
+}
+navToggle.addEventListener('click', () => {
+  if (navToggle.getAttribute('aria-expanded') === 'true') return closeNav()
+  navToggle.setAttribute('aria-expanded', 'true')
+  navToggle.setAttribute('aria-label', 'Zapri navigacijo')
+  $('.masthead').classList.add('expanded')
+})
+$('#nav').addEventListener('click', closeNav)
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && navToggle.getAttribute('aria-expanded') === 'true') {
+    closeNav()
+    navToggle.focus()
+  }
+})

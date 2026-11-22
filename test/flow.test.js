@@ -55,7 +55,8 @@ test('a published menu travels from the owner to a guest booking and the kitchen
     assert.ok(time)
     const input = {
       date, time, party: 4, name: 'Test Gost', phone: '070 000 001', email: 'guest@example.com',
-      consent: true, key: randomUUID(), items: [{ id: 'daily:soup', quantity: 4 }]
+      notes: 'Alergija na oreščke', consent: true, key: randomUUID(),
+      items: [{ id: 'daily:soup', quantity: 4 }, { id: 'regular:gnudi', quantity: 1 }]
     }
     const post = body => call('reservations', { method: 'POST', body })
     const inputs = [input, { ...input, key: randomUUID(), email: 'other@example.com' }]
@@ -76,6 +77,10 @@ test('a published menu travels from the owner to a guest booking and the kitchen
     const [ticket] = (await readBoard(kitchen)).data.reservations
     assert.equal(ticket.items[0].quantity, 4)
     assert.equal(ticket.items[0].price, 540)
+    assert.equal(ticket.items[1].name, 'Gnudi z jurčki')
+    assert.equal(ticket.guestNote, input.notes)
+    const ownerKitchen = await call('board?date=' + date + '&view=kitchen', { cookie: owner.cookie })
+    assert.deepEqual(ownerKitchen.data.reservations, [ticket])
     assert.equal(ticket.email, undefined)
     assert.equal(ticket.phone, undefined)
     assert.equal(ticket.name, undefined)

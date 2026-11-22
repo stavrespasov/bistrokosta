@@ -113,7 +113,7 @@ function board(state, date, role) {
   if (role === 'owner') return reservations.map(({ key, emailLease, emailLeaseUntil, ...record }) => record)
   return reservations.filter(r => ['confirmed', 'seated', 'completed'].includes(r.status)).map(r => ({
     id: r.id, reference: r.reference, date: r.date, time: r.time, party: r.party,
-    status: r.status, items: r.items, kitchenStatus: r.kitchenStatus, staffNotes: r.staffNotes, table: r.table || ''
+    status: r.status, items: r.items, kitchenStatus: r.kitchenStatus, guestNote: r.notes || '', staffNotes: r.staffNotes, table: r.table || ''
   }))
 }
 
@@ -222,7 +222,7 @@ export default async function handler(req, res) {
     if (path === 'reservations' && method === 'POST') return json(res, 201, await reserve(store, req))
     if (path === 'board' && method === 'GET') {
       const role = requireRole(req, 'owner', 'kitchen')
-      return json(res, 200, { reservations: board(await store.read(), selectedDate(url), role), today: localClock()[0] })
+      return json(res, 200, { reservations: board(await store.read(), selectedDate(url), url.searchParams.get('view') === 'kitchen' ? 'kitchen' : role), today: localClock()[0] })
     }
     const ticket = path.match(/^reservations\/([a-f0-9-]{36})$/)
     if (ticket && method === 'PATCH') return json(res, 200, await changeTicket(store, req, ticket[1], requireRole(req, 'owner', 'kitchen')))

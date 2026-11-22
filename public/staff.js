@@ -92,7 +92,7 @@ async function load({ quiet = false } = {}) {
   request = controller
   const isBoard = view === 'reservations'
   try {
-    const result = await api((isBoard ? 'board' : 'content') + '?' + new URLSearchParams({ date }), { signal: controller.signal })
+    const result = await api((isBoard ? 'board' : 'content') + '?' + new URLSearchParams({ date, view: kitchen ? 'kitchen' : view }), { signal: controller.signal })
     if (controller.signal.aborted) return
     if (!isBoard) {
       edit = result
@@ -222,6 +222,16 @@ function renderKitchen() {
   for (const record of waiting.filter(r => ['queued', 'preparing'].includes(r.kitchenStatus))) {
     for (const item of record.items) totals.set(item.name, (totals.get(item.name) || 0) + item.quantity)
   }
+  const byTime = new Map()
+  for (const ticket of waiting.filter(r => ['queued', 'preparing'].includes(r.kitchenStatus))) {
+    const dishes = byTime.get(ticket.time) || new Map()
+    for (const item of ticket.items) dishes.set(item.name, (dishes.get(item.name) || 0) + item.quantity)
+    if (dishes.size) byTime.set(ticket.time, dishes)
+  }
+  const schedule = node('section', { className: 'prep-plan' }, node('h2', {}, 'Porcije po urah'),
+    ...[...byTime].map(([time, dishes]) => node('div', { className: 'prep-slot' },
+      node('time', {}, time), node('ul', {}, ...[...dishes].map(([name, quantity]) =>
+        node('li', {}, node('b', {}, quantity + ' × '), name))))))
   const stats = node('div', { className: 'stats' },
     stat(waiting[0]?.time ?? '—', 'Naslednja miza'), stat(waiting.reduce((n, r) => n + r.party, 0), 'Gosti v servisu'),
     stat([...totals.values()].reduce((n, count) => n + count, 0), 'Porcije za pripravo'),
@@ -235,14 +245,14 @@ function renderKitchen() {
       record.items.length ? node('ul', {}, ...record.items.map(item => node('li', {},
         node('strong', {}, item.quantity + '×'), node('span', {}, item.name,
           item.allergens ? node('span', { className: 'subtle' }, 'Alergeni: ' + item.allergens) : null)))) : para('Naročilo ob prihodu.'),
+      record.guestNote ? para('Opomba gosta · ' + record.guestNote, 'kitchen-note') : null,
       record.staffNotes ? para(record.staffNotes, 'kitchen-note') : null,
       next && record.status !== 'completed' ? btn(next[1], event =>
         action(event, () => changeTicket(record.id, { kitchenStatus: next[0] }), 'Priprava je posodobljena.'),
       record.kitchenStatus === 'queued' ? 'button secondary' : 'button primary') : null)
   }))
   panel.replaceChildren(stats, node('div', { className: 'board-tools' }, node('strong', {}, dateLabel(date)), para('Samodejno osveževanje')),
-    totals.size ? node('div', { className: 'kitchen-compact' }, ...[...totals].map(([name, quantity]) =>
-      node('span', { className: 'pill' }, quantity + ' × ' + name))) : node('div'),
+    ...(byTime.size ? [schedule] : []),
     reservations.length ? content : para('Za izbrani datum ni potrjenih rezervacij.', 'empty'))
 }
 
@@ -291,10 +301,18 @@ function bind(item, key, options = {}) {
 
 function photoField(initial, change) {
   const image = node('img', { src: initial || undefined, alt: '', hidden: !initial })
-  return node('div', { className: 'photo-field' }, image, uploadControl(initial ? 'Zamenjaj sliko' : '+ Naloži sliko', url => {
+  const choose = url => {
+    if (!url) return
     image.hidden = false
     image.src = url
+    dirty = true
     change(url)
+  }
+  const library = Object.fromEntries(edit.gallery.filter(photo => mediaPath(photo.src)).map(photo => [photo.src, photo.alt || 'Fotografija']))
+  const gallery = select(initial in library ? initial : '', { '': 'Izberi iz galerije', ...library }, choose, 'Fotografija iz galerije')
+  return node('div', { className: 'photo-field' }, image, gallery, uploadControl('Naloži fotografijo', url => {
+    gallery.value = ''
+    choose(url)
   }))
 }
 
@@ -324,6 +342,11 @@ function editDish(item, remove) {
 async function save(input, message) {
   if (writes > 1) throw new Error('Počakajte, da se nalaganje konča.')
   await api('content', { method: 'PUT', body: input })
+  if ('BroadcastChannel' in window) {
+    const updates = new BroadcastChannel('kosta-menu')
+    updates.postMessage('published')
+    updates.close()
+  }
   dirty = false
   await load()
   say(notice, message, 'success')
@@ -351,6 +374,17 @@ function menuEditor() {
     dirty = true
     renderContent()
   }) : null)
+  const previousDate = daily && edit.dailyDates.filter(day => day < date).at(-1)
+  if (previousDate && !items.length) {
+    controls.append(btn('Kopiraj meni · ' + dateLabel(previousDate), event => action(event, async () => {
+      const current = edit
+      const source = await api('content?date=' + previousDate)
+      if (current !== edit || items.length || view !== 'daily') return
+      items.push(...structuredClone(source.daily?.items || []))
+      dirty = true
+      renderContent()
+    })))
+  }
   const write = (event, publish = false) => {
     if (!form.reportValidity()) return
     action(event, () => save({ section: view, date, published: publish, items },

@@ -1,3 +1,4 @@
+import { parseArgs } from 'node:util'
 import { createServer } from 'node:http'
 import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
@@ -30,6 +31,10 @@ const server = createServer(async (req, res) => {
   res.end('Stran ne obstaja.')
 })
 
-server.listen(Number(process.env.PORT || 3000), process.env.HOST || '127.0.0.1', () => {
-  console.log('Bistro Kóšta · http://' + (process.env.HOST || '127.0.0.1') + ':' + server.address().port)
+const { values } = parseArgs({
+  options: { port: { type: 'string' }, host: { type: 'string' }, strictPort: { type: 'boolean' } }
+})
+const host = values.host || process.env.HOST || '127.0.0.1'
+server.listen(Number(values.port || process.env.PORT || 3000), host, () => {
+  console.log('Bistro Kóšta · http://' + host + ':' + server.address().port)
 })
