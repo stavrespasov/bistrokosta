@@ -5,7 +5,7 @@ Slovenian restaurant website with an owner dashboard, a kitchen screen and guest
 Run `npm ci` and `npm run dev` with Node.js 24. Open [the website](http://127.0.0.1:3000), [owner dashboard](http://127.0.0.1:3000/admin), or [kitchen display](http://127.0.0.1:3000/kitchen). The dashboard displays local preview passwords. The preview saves to SQLite in `.data/` and does not need a mail account. Use fictional contact details in the preview. Run `npm test` to exercise publishing, guest bookings, simultaneous requests for the same capacity, owner confirmation and kitchen access.
 
 - **Dnevni meni** — select the service date, add dishes, copy the previous service menu, or load the 15 April example, and publish. Customers see the menu for the current day or the date they select when booking. Toggle each dish's visibility and preorder availability separately.
-- **Rezervacije** — filter a day's reservations, confirm requests, edit details and dishes, and send a kitchen note. The booking preserves the chosen dish names, quantities and prices when the menu changes.
+- **Rezervacije** — enter a phone reservation, filter a day's reservations, confirm requests, edit details and dishes, and send a kitchen note. The booking preserves the chosen dish names, quantities and prices when the menu changes.
 - **Kuhinja** — portions grouped by service time, followed by table tickets with party size, guest requests, and kitchen notes. Advance tickets through preparation, ready and served. The screen updates every 10 seconds and omits guest contact details.
 - **Fotografije** — upload or replace gallery and headline images, change captions, and reorder the gallery. Uploads are resized and stored with the site data.
 

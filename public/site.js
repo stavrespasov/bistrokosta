@@ -79,12 +79,7 @@ function applySite(next) {
     $('#galerija').hidden = !next.gallery.length
     $('#gallery-more').hidden = next.gallery.length <= 3
     $('#gallery').replaceChildren(...next.gallery.filter(photo => mediaPath(photo.src)).map(photo => node('figure', {},
-      node('button', { type: 'button', className: 'photo-open', 'aria-label': 'Povečaj fotografijo: ' + photo.alt,
-        onclick: () => {
-          $('#photo-full').src = photo.src
-          text('#photo-title', photo.alt)
-          $('#photo-dialog').showModal()
-        } }, node('img', { src: photo.src, alt: '', loading: 'lazy' })),
+      node('img', { src: photo.src, alt: photo.alt, loading: 'lazy' }),
       node('figcaption', {}, photo.alt))))
   }
   const phoneOnly = !hostedReview && !settings.bookingOpen
@@ -309,6 +304,7 @@ $('#gallery-more').addEventListener('click', event => {
   event.currentTarget.textContent = expanded ? 'Pokaži manj' : 'Vse fotografije'
 })
 
-$('#photo-dialog').addEventListener('click', event => {
-  if (event.target === event.currentTarget) event.currentTarget.close()
-})
+for (const link of $$('.mobile-nav a')) link.addEventListener('click', () => { $('.mobile-nav').open = false })
+if (hostedReview) {
+  for (const link of $$('a[href="/admin"]')) link.href = '/admin?demo=1'
+}

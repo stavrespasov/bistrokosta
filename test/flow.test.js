@@ -90,6 +90,28 @@ test('a published menu travels from the owner to a guest booking and the kitchen
     assert.equal(updated.status, 'confirmed')
     assert.equal((await put({ section: 'daily', date, published: false, items: [] })).status, 200)
     assert.equal((await readBoard(kitchen)).data.reservations[0].items[0].name, 'Juha za test')
+
+    // The owner can take phone bookings while public reservations are closed.
+    const phoneDay = addDays(date, 1)
+    await put({ section: 'settings', settings: { ...initial.settings, bookingOpen: false, seats: 4, maxParty: 4 } })
+    const deskUrl = 'availability?date=' + phoneDay + '&party=4&desk=1'
+    assert.deepEqual((await call('availability?date=' + phoneDay + '&party=4')).data.slots, [])
+    assert.equal((await call(deskUrl)).status, 401)
+    const [deskTime] = (await call(deskUrl, { cookie: owner.cookie })).data.slots
+    const phoneBooking = { date: phoneDay, time: deskTime, party: 4, name: 'Telefonski gost', phone: '070000002', key: randomUUID() }
+    const desk = (body, cookie) => call('desk-reservations', { method: 'POST', body, cookie })
+    assert.equal((await desk(phoneBooking, kitchen.cookie)).status, 403)
+    assert.equal((await desk(phoneBooking)).status, 401)
+    assert.equal((await post({ ...phoneBooking, consent: true })).status, 400)
+    const saved = await desk(phoneBooking, owner.cookie)
+    assert.equal(saved.status, 201)
+    assert.equal(saved.data.emailStatus, 'phone')
+    assert.equal(saved.data.status, 'confirmed')
+    assert.equal((await desk(phoneBooking, owner.cookie)).data.reference, saved.data.reference)
+    assert.equal((await desk({ ...phoneBooking, key: randomUUID() }, owner.cookie)).status, 409)
+    const service = await call('board?date=' + phoneDay, { cookie: kitchen.cookie })
+    assert.equal(service.data.reservations[0].reference, saved.data.reference)
+    assert.equal(service.data.service, undefined)
   } finally {
     await new Promise(resolve => server.close(resolve))
     await rm(dir, { recursive: true, force: true })

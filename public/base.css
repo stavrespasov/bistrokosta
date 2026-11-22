@@ -45,3 +45,8 @@ input[type=checkbox],input[type=radio]{accent-color:var(--ink)}
 .brand-name{display:grid;font:800 31px/.82 var(--display);text-transform:uppercase;letter-spacing:-.035em}
 .brand-name small{font:400 9px/1.4 var(--mono);letter-spacing:.13em}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important}}
+
+@media(max-width:760px){
+ input:not([type=checkbox]):not([type=radio]),select,textarea{font-size:1rem}
+ .fields,.fields>*,fieldset,section,dialog,article{min-width:0}
+}

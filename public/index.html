@@ -19,6 +19,7 @@
     <nav aria-label="Glavna navigacija">
       <a href="#meni">Meni</a><a href="#zgodba">O nas</a><a href="#obisk">Obisk</a>
     </nav>
+    <details class="mobile-nav"><summary>Kazalo</summary><nav aria-label="Mobilna navigacija"><a href="#meni">Jedilnik</a><a href="#galerija">Fotografije</a><a href="#obisk">Obisk</a><a href="/admin">Za ekipo</a></nav></details>
     <a class="button small primary" href="#rezervacija">Rezerviraj mizo <span aria-hidden="true">→</span></a>
   </header>
   <main id="main">
@@ -30,7 +31,6 @@
         <div class="cover-actions"><a class="button primary" href="#meni">Poglej meni <span aria-hidden="true">↓</span></a><a class="text-link" href="#rezervacija">Rezerviraj mizo <span aria-hidden="true">↗</span></a></div>
       </div>
       <div class="cover-art">
-        <div class="print-board" aria-hidden="true"></div>
         <figure class="cover-print"><img id="hero-image" src="/media/kosta-soup.webp" alt="Kóština juha z zelenjavo in svežimi zelišči" width="1043" height="1280" fetchpriority="high"></figure>
         <a class="photo-tab" href="#galerija">Iz kuhinje <span aria-hidden="true">↘</span></a>
       </div>
@@ -142,7 +142,7 @@
       </div>
     </section>
   </main>
-  <dialog id="photo-dialog" aria-labelledby="photo-title"><form method="dialog"><button aria-label="Zapri fotografijo" autofocus>Zapri ×</button></form><figure><img id="photo-full" alt=""><figcaption id="photo-title"></figcaption></figure></dialog>
+
   <footer><a href="/" class="wordmark"><span class="brand-emblem" aria-hidden="true"><i class="bowl-mark"></i></span><span class="brand-name"><small>Bistro</small>Kóšta</span></a><span>Ferrarska 5B · Koper</span><nav aria-label="Za ekipo"><a href="/admin">Za ekipo</a> · <a href="/admin?demo=1">Preizkus pulta</a> · <a href="/kitchen?demo=1">Preizkus kuhinje</a></nav></footer>
 </body>
 </html>

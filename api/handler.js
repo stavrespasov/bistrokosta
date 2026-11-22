@@ -77,33 +77,37 @@ const publicTicket = record => ({
   items: record.items, emailStatus: record.emailStatus
 })
 
-async function reserve(store, req) {
+function bookableHours(settings, desk) {
+  return desk ? { ...settings, bookingOpen: true, leadMinutes: 0 } : settings
+}
+
+async function reserve(store, req, desk = false) {
   const input = await body(req)
   const key = text(input.key, 40, true)
   if (!/^[a-f0-9-]{36}$/.test(key)) throw new Problem(400, 'Osvežite stran in poskusite ponovno.')
-  const details = contact(input)
-  if (input.consent !== true) throw new Problem(400, 'Potrdite uporabo podatkov za rezervacijo.')
-  await rateLimit(store, req, 'booking', 10, 10 * 60_000)
+  const details = contact(input, desk)
+  if (!desk && input.consent !== true) throw new Problem(400, 'Potrdite uporabo podatkov za rezervacijo.')
+  if (!desk) await rateLimit(store, req, 'booking', 10, 10 * 60_000)
   const record = await store.change(state => {
-    const existing = state.reservations.find(r => r.key === key && r.email === details.email)
+    const existing = state.reservations.find(r => r.key === key && r.email === details.email && (r.source === 'desk') === desk)
     if (existing) return existing
     const { date, time } = input
     const party = number(input.party, 1, state.settings.maxParty)
-    if (!serviceSlots(state.settings, date).includes(time) || !seatsAvailable(state, date, time, party)) {
+    if (!serviceSlots(bookableHours(state.settings, desk), date).includes(time) || !seatsAvailable(state, date, time, party)) {
       throw new Problem(409, 'Ta termin ni več na voljo. Izberite drugo uro.')
     }
     const items = orderFor(state, date, input.items ?? [], party)
     const ticket = {
       id: randomUUID(), reference: randomBytes(5).toString('hex').toUpperCase(), key, ...details,
       date, time, party, duration: state.settings.duration, items,
-      status: state.settings.autoConfirm ? 'confirmed' : 'pending',
-      kitchenStatus: 'queued', emailStatus: 'waiting', confirmationVersion: 1,
+      source: desk ? 'desk' : 'web', status: desk || state.settings.autoConfirm ? 'confirmed' : 'pending',
+      kitchenStatus: 'queued', emailStatus: details.email ? 'waiting' : 'phone', confirmationVersion: 1,
       staffNotes: '', table: '', createdAt: new Date().toISOString()
     }
     state.reservations.push(ticket)
     return ticket
   })
-  if (record.status === 'confirmed') await confirmation(store, record.id)
+  if (record.email && record.status === 'confirmed') await confirmation(store, record.id)
   const fresh = (await store.read()).reservations.find(r => r.id === record.id)
   return publicTicket(fresh ?? record)
 }
@@ -139,7 +143,7 @@ async function changeTicket(store, req, id, role) {
     if (input.details) {
       const { date, time, party, items } = input.details
       if (!validDate(date) || !validTime(time)) throw new Problem(400, 'Preverite datum in uro.')
-      Object.assign(record, contact(input.details), { date, time, party: number(party, 1, 200) })
+      Object.assign(record, contact(input.details, record.source === 'desk'), { date, time, party: number(party, 1, 200) })
       if (items !== undefined) record.items = orderFor(state, date, items, record.party)
       if (input.details.order !== undefined) {
         const order = input.details.order
@@ -161,12 +165,12 @@ async function changeTicket(store, req, id, role) {
     const changed = shifted || old.email !== record.email || old.name !== record.name || old.items !== record.items
     if (record.status === 'confirmed' && (old.status !== record.status || changed)) {
       record.confirmationVersion++
-      record.emailStatus = 'waiting'
+      record.emailStatus = record.email ? 'waiting' : 'phone'
       delete record.emailLease
       delete record.emailLeaseUntil
-      return { send: true }
+      return { send: Boolean(record.email) }
     }
-    return { send: input.retryEmail === true && record.status === 'confirmed' }
+    return { send: input.retryEmail === true && Boolean(record.email) && record.status === 'confirmed' }
   })
   if (result.send) await confirmation(store, id)
   return { ok: true }
@@ -217,13 +221,29 @@ export default async function handler(req, res) {
       const state = currentPhotos(await store.read())
       const date = selectedDate(url)
       const party = number(Number(url.searchParams.get('party')), 1, state.settings.maxParty)
-      const slots = serviceSlots(state.settings, date).filter(time => seatsAvailable(state, date, time, party))
+      const desk = url.searchParams.get('desk') === '1'
+      if (desk) requireRole(req, 'owner')
+      const slots = serviceSlots(bookableHours(state.settings, desk), date).filter(time => seatsAvailable(state, date, time, party))
       return json(res, 200, { slots, menu: catalogue(state, date) })
+    }
+    if (path === 'desk-reservations' && method === 'POST') {
+      requireRole(req, 'owner')
+      return json(res, 201, await reserve(store, req, true))
     }
     if (path === 'reservations' && method === 'POST') return json(res, 201, await reserve(store, req))
     if (path === 'board' && method === 'GET') {
       const role = requireRole(req, 'owner', 'kitchen')
-      return json(res, 200, { reservations: board(await store.read(), selectedDate(url), url.searchParams.get('view') === 'kitchen' ? 'kitchen' : role), today: localClock()[0] })
+      const state = await store.read()
+      const date = selectedDate(url)
+      const boardRole = url.searchParams.get('view') === 'kitchen' ? 'kitchen' : role
+      const menu = state.daily[date]
+      return json(res, 200, {
+        reservations: board(state, date, boardRole), today: localClock()[0],
+        ...(boardRole === 'owner' ? { service: {
+          published: Boolean(menu?.published), dishes: menu?.items.filter(item => item.active).length || 0,
+          bookingOpen: state.settings.bookingOpen, maxParty: state.settings.maxParty
+        } } : {})
+      })
     }
     const ticket = path.match(/^reservations\/([a-f0-9-]{36})$/)
     if (ticket && method === 'PATCH') return json(res, 200, await changeTicket(store, req, ticket[1], requireRole(req, 'owner', 'kitchen')))

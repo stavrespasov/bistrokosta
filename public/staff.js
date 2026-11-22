@@ -13,11 +13,12 @@ const statusNames = {
 }
 const prep = { queued: 'Za pripravo', preparing: 'V pripravi', ready: 'Pripravljeno', served: 'Postreženo' }
 const nextPrep = { queued: ['preparing', 'Začni pripravo'], preparing: ['ready', 'Označi pripravljeno'], ready: ['served', 'Označi postreženo'] }
-const emailNames = { waiting: 'Čaka', sending: 'Pošiljanje', sent: 'Poslano', failed: 'Pošiljanje ni uspelo', unconfigured: 'Ni nastavljeno', preview: 'Predogled' }
+const emailNames = { phone: 'Dogovor po telefonu', waiting: 'Čaka', sending: 'Pošiljanje', sent: 'Poslano', failed: 'Pošiljanje ni uspelo', unconfigured: 'Ni nastavljeno', preview: 'Predogled' }
 const titles = { reservations: 'Rezervacije.', daily: 'Dnevni meni.', regular: 'Stalna ponudba.', media: 'Fotografije.', settings: 'Nastavitve.' }
 let view = 'reservations'
 let statusFilter = 'all'
 let reservations = []
+let service
 let request
 let role
 let dirty = false
@@ -78,6 +79,10 @@ function go(next, nextDate = date) {
   view = next
   date = nextDate
   dateInput.value = date
+  const route = new URL(location.href)
+  route.searchParams.set('date', date)
+  if (!kitchen) route.searchParams.set('view', view)
+  history.replaceState(null, '', route)
   $('#kitchen-link').href = '/kitchen?' + (hostedReview ? 'demo=1&' : '') + 'date=' + date
   $('#owner-link').href = '/admin?' + (hostedReview ? 'demo=1&' : '') + 'date=' + date
   say(notice, '')
@@ -102,7 +107,8 @@ async function load({ quiet = false } = {}) {
       renderContent()
       return
     }
-    if (quiet && JSON.stringify(result.reservations) === JSON.stringify(reservations)) return
+    if (quiet && JSON.stringify(result.reservations) === JSON.stringify(reservations) && JSON.stringify(result.service) === JSON.stringify(service)) return
+    service = result.service
     reservations = result.reservations
     if (kitchen) renderKitchen()
     else renderBoard()
@@ -126,7 +132,8 @@ function renderBoard() {
     stat(reservations.filter(r => r.status === 'pending').length, 'Čakajo na potrditev'),
     stat(reservations.filter(r => ['confirmed', 'seated'].includes(r.status)).flatMap(r => r.items).reduce((count, item) => count + item.quantity, 0), 'Potrjene porcije'))
   const tools = node('div', { className: 'board-tools' },
-    node('strong', {}, dateLabel(date)),
+    node('div', { className: 'board-caption' }, node('h2', {}, 'Seznam miz'), para(dateLabel(date))),
+    btn('+ Vpiši rezervacijo', openDeskBooking, 'button primary small'),
     select(statusFilter, { all: 'Vsi statusi', ...statusNames }, value => { statusFilter = value; renderBoard() }, 'Filtriraj status'))
   const tickets = node('div', { className: 'tickets' }, ...records.map(record => {
     const quick = record.status === 'pending' ? ['Potrdi', 'confirmed']
@@ -140,7 +147,70 @@ function renderBoard() {
       node('div', { className: 'ticket-actions' }, btn('Odpri', () => openTicket(record)), quick ? btn(quick[0], event =>
         action(event, () => changeTicket(record.id, { status: quick[1] }), 'Status je posodobljen.'), 'button primary small') : null))
   }))
-  panel.replaceChildren(stats, tools, records.length ? tickets : para('Za izbrani datum in status ni rezervacij.', 'empty'))
+  const digest = node('div', { className: 'service-digest' },
+    node('div', {}, node('strong', {}, 'Dnevni meni'), para(service.published ? 'Objavljeno · ' + service.dishes + ' jedi' : 'Za ta dan še ni objavljen.'),
+      btn('Uredi meni →', () => go('daily'), 'plain')),
+    node('div', {}, node('strong', {}, 'Rezervacije'), para(service.bookingOpen ? 'Spletne rezervacije so odprte.' : 'Rezervacije sprejemate po telefonu.'),
+      btn('Nastavitve →', () => go('settings'), 'plain')))
+  panel.replaceChildren(stats, digest, tools, records.length ? tickets : para('Za izbrani datum in status ni rezervacij.', 'empty'))
+}
+
+function openDeskBooking() {
+  $('#ticket-title').textContent = 'Vpiši rezervacijo'
+  const editor = node('form', { className: 'fields' })
+  const day = input(date < dateToday() ? dateToday() : date, { type: 'date', required: true, min: dateToday() })
+  const guests = input(String(Math.min(2, service.maxParty)), { type: 'number', min: '1', max: String(service.maxParty), required: true })
+  const time = node('select', { required: true })
+  const guest = input('', { required: true, maxLength: 90 })
+  const phone = input('', { type: 'tel', required: true, maxLength: 32 })
+  const notes = node('textarea', { rows: 2, maxLength: 500 })
+  const message = para('', 'error')
+  message.setAttribute('role', 'status')
+  const submit = node('button', { type: 'submit', className: 'button primary', disabled: true }, 'Potrdi rezervacijo')
+  const key = crypto.randomUUID()
+  let sequence = 0
+  async function times() {
+    const current = ++sequence
+    submit.disabled = true
+    time.replaceChildren()
+    if (!day.checkValidity() || !guests.checkValidity()) return
+    try {
+      const result = await api('availability?' + new URLSearchParams({ date: day.value, party: guests.value, desk: '1' }))
+      if (current !== sequence) return
+      time.replaceChildren(...result.slots.map(slot => node('option', { value: slot }, slot)))
+      say(message, result.slots.length ? '' : 'Ni prostih ur. Izberite drug datum ali število gostov.')
+      submit.disabled = !result.slots.length
+    } catch (failure) {
+      if (current === sequence) say(message, failure.message)
+    }
+  }
+  day.addEventListener('input', times)
+  guests.addEventListener('input', times)
+  editor.append(node('div', { className: 'fields two' }, label('Datum', day), label('Gostje', guests)),
+    label('Prosta ura', time), label('Ime in priimek', guest), label('Telefon', phone),
+    label('Opomba za kuhinjo', notes), message, submit)
+  editor.addEventListener('submit', async event => {
+    event.preventDefault()
+    if (submit.disabled) return
+    submit.disabled = true
+    try {
+      await api('desk-reservations', { method: 'POST', body: {
+        date: day.value, time: time.value, party: Number(guests.value), name: guest.value,
+        phone: phone.value, notes: notes.value, key
+      } })
+      dialog.close()
+      statusFilter = 'all'
+      go('reservations', day.value)
+      say(notice, 'Telefonska rezervacija je potrjena.', 'success')
+    } catch (failure) {
+      if (failure.status === 409) await times()
+      else submit.disabled = false
+      say(message, failure.message)
+    }
+  })
+  $('#ticket-dialog-body').replaceChildren(editor)
+  dialog.showModal()
+  times()
 }
 
 function openTicket(record) {
@@ -151,7 +221,7 @@ function openTicket(record) {
     ['name', 'Ime in priimek', 'text', 90], ['email', 'E-pošta', 'email', 180], ['phone', 'Telefon', 'tel', 32],
     ['date', 'Datum', 'date'], ['time', 'Ura', 'time'], ['party', 'Gostje', 'number']
   ].map(([key, title, type, maxLength]) => {
-    const control = input(String(record[key]), { type, required: true, maxLength })
+    const control = input(String(record[key]), { type, required: key !== 'email' || record.source !== 'desk', maxLength })
     if (key === 'party') { control.min = '1'; control.max = '200' }
     fields[key] = control
     return label(title, control)
@@ -192,7 +262,7 @@ function openTicket(record) {
         $('input[type=text], input:not([type])', orderLines.lastElementChild)?.focus()
       }, 'plain')),
     dialogError, node('div', { className: 'dialog-actions' }, submit,
-      record.status === 'confirmed' && !['sent', 'preview'].includes(record.emailStatus)
+      record.email && record.status === 'confirmed' && !['sent', 'preview'].includes(record.emailStatus)
         ? btn('Ponovi pošiljanje', event => action(event, async () => {
           await changeTicket(record.id, { retryEmail: true })
           dialog.close()
@@ -504,7 +574,9 @@ async function boot() {
     if (!allowed) return
     document.body.classList.toggle('kitchen', kitchen)
     if (kitchen) $('#staff-eyebrow').textContent = 'KUHINJA · KÓŠTA'
-    go('reservations')
+    const initialView = new URL(location.href).searchParams.get('view')
+    go(!kitchen && Object.hasOwn(titles, initialView) ? initialView : 'reservations')
+    if (hostedReview) $('.staff-header .wordmark').href = '/?demo=1'
   } catch (failure) {
     say($('#startup'), failure.message, 'error')
   }
