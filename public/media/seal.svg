@@ -1,0 +1,7 @@
+<svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+  <defs><path id="rim" d="M70,70 m-52,0 a52,52 0 1,1 104,0 a52,52 0 1,1 -104,0"/></defs>
+  <circle cx="70" cy="70" r="69" fill="#f9cf61"/>
+  <circle cx="70" cy="70" r="65" fill="none" stroke="#362516" stroke-width="1"/>
+  <text fill="#362516" font-family="sans-serif" font-size="12" font-weight="bold" letter-spacing="2.2"><textPath href="#rim" textLength="320"> BISTRO KÓŠTA · KOPER · BISTRO KÓŠTA · KOPER · </textPath></text>
+  <path d="M43 65a27 27 0 0 0 54 0M52 92h36M65 56l7-12" fill="none" stroke="#362516" stroke-width="4"/>
+</svg>
