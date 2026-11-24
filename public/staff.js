@@ -10,6 +10,8 @@ const dateInput = $('#service-date')
 const notice = $('#staff-message')
 const dialog = $('#ticket-dialog')
 const login = $('#login-form')
+const sectionToggle = $('#owner-view-toggle')
+const linksToggle = $('#staff-links-toggle')
 const statusNames = {
   pending: 'Čaka na potrditev', confirmed: 'Potrjeno', seated: 'Pri mizi',
   completed: 'Zaključeno', cancelled: 'Preklicano', 'no-show': 'Ni prišel'
@@ -78,6 +80,11 @@ async function action(event, operation, done) {
 }
 
 function go(next, nextDate = date, reference = '', status = 'all') {
+  if (edit && writes) {
+    dateInput.value = date
+    say(notice, 'Počakajte, da se trenutna sprememba zaključi.', 'error')
+    return
+  }
   if (dirty && !confirm('Neshranjene spremembe bodo izgubljene. Želite nadaljevati?')) {
     dateInput.value = date
     return
@@ -87,6 +94,7 @@ function go(next, nextDate = date, reference = '', status = 'all') {
   searchTerm = reference
   statusFilter = status
   sourceFilter = 'all'
+  const changedView = view !== next
   view = next
   date = nextDate
   dateInput.value = date
@@ -107,10 +115,12 @@ function go(next, nextDate = date, reference = '', status = 'all') {
   }
   document.title = (kitchen ? 'Kuhinja' : titles[view]) + ' · Bistro Kóšta'
   $('#staff-title').textContent = kitchen ? 'Kuhinjski servis' : titles[view]
-  $('#date-control').hidden = !dateViews.has(view)
-  $('#today').hidden = $('#date-control').hidden
+  $('#owner-view-current').textContent = titles[view]
+  $('#staff-tools').hidden = !dateViews.has(view)
+  if (changedView) window.scrollTo({ top: 0, behavior: 'instant' })
   panel.replaceChildren(para('Nalagamo …', 'empty'))
   load()
+  return true
 }
 
 async function load({ quiet = false } = {}) {
@@ -388,10 +398,12 @@ function uploadControl(title, update) {
     control.disabled = true
     const holder = control.closest('.upload')
     const text = $('span', holder)
+    const editor = edit
     text.textContent = 'Nalagamo …'
     writes++
     try {
       const url = await upload(control.files[0])
+      if (editor !== edit) return
       dirty = true
       update(url)
       say(notice, 'Slika je naložena. Shranite spremembe.', 'success')
@@ -453,7 +465,7 @@ function editDish(item, remove) {
     details)
 }
 
-async function save(input, message) {
+async function save(input, message, { reload = true, status = notice } = {}) {
   if (writes > 1) throw new Error('Počakajte, da se nalaganje konča.')
   await api('content', { method: 'PUT', body: input })
   if ('BroadcastChannel' in window) {
@@ -462,8 +474,8 @@ async function save(input, message) {
     updates.close()
   }
   dirty = false
-  await load()
-  say(notice, message, 'success')
+  if (reload) await load()
+  say(status, message, 'success')
 }
 
 function menuEditor() {
@@ -524,46 +536,84 @@ function menuEditor() {
 
 function mediaEditor() {
   const gallery = edit.gallery
-  const galleryForm = node('form', { onsubmit: event => event.preventDefault() })
+  const settings = edit.settings
+  const photos = [['hero', 'Uvodna fotografija'], ['storyPhoto', 'Fotografija pri zgodbi'], ['terracePhoto', 'Fotografija pri obisku']]
+  const galleryForm = node('form', { onsubmit: submitPhotos })
   const grid = node('div', { className: 'photo-grid' })
-  galleryForm.append(node('div', { className: 'editor-top' }, node('div', {}, node('h2', {}, 'Galerija'), para('Fotografije in njihov vrstni red na spletni strani.')),
-    uploadControl('+ Dodaj fotografijo', url => {
-      if (gallery.length >= 40) return say(notice, 'Galerija lahko vsebuje največ 40 slik.', 'error')
-      gallery.push({ src: url, alt: '' })
-      renderContent()
-      $$('.photo-edit input[type=text]', panel).at(-1)?.focus()
-    })))
+  const saveButton = title => node('button', { type: 'submit', className: 'button primary' }, title)
+  const feedback = () => node('p', { className: 'photo-feedback', role: 'status', hidden: true })
+  const topFeedback = feedback()
+  const bottomFeedback = feedback()
+  const add = uploadControl('+ Dodaj fotografijo', url => {
+    if (gallery.length >= 40) return say(notice, 'Galerija lahko vsebuje največ 40 slik.', 'error')
+    gallery.push({ src: url, alt: '' })
+    renderContent()
+    $$('.photo-edit input[type=text]', panel).at(-1)?.focus()
+  })
+  add.classList.add('photo-add')
+  galleryForm.append(node('div', { className: 'editor-top photo-editor-top' },
+    node('div', {}, node('h2', {}, 'Galerija'), para('Fotografije in njihov vrstni red na spletni strani.')),
+    node('div', { className: 'photo-toolbar' }, add, saveButton('Shrani fotografije')), topFeedback))
+
+  async function submitPhotos(event) {
+    event.preventDefault()
+    const status = event.submitter?.closest('.photo-footer') ? bottomFeedback : topFeedback
+    if (writes) return say(status, 'Počakajte, da se nalaganje konča.', 'error')
+    const coverPhotos = Object.fromEntries(photos.map(([key]) => [key, settings[key]]))
+    const controls = $$('input:enabled, select:enabled, button:enabled', galleryForm)
+    controls.forEach(control => { control.disabled = true })
+    writes++
+    say(topFeedback, '')
+    say(bottomFeedback, '')
+    say(status, 'Shranjujemo …', 'pending')
+    try {
+      await save({ section: 'media', gallery, photos: coverPhotos }, 'Fotografije so posodobljene.', { reload: false, status })
+      say(notice, '')
+    } catch (failure) {
+      say(status, failure.message, 'error')
+      if (failure.status === 401) error(failure)
+    } finally {
+      controls.forEach(control => { control.disabled = false })
+      event.submitter?.focus({ preventScroll: true })
+      writes--
+    }
+  }
+
   function movePhoto(index, direction) {
     const target = index + direction
     const [photo] = gallery.splice(index, 1)
     gallery.splice(target, 0, photo)
     dirty = true
     renderContent()
-    $$('.photo-edit input[type=text]', panel)[target]?.focus({ preventScroll: true })
+    const card = $$('.photo-edit', panel)[target]
+    const reorder = $(`[data-direction="${direction}"]:enabled`, card) || $('.photo-order button:enabled', card)
+    reorder?.focus({ preventScroll: true })
+    card.scrollIntoView({ block: 'nearest', behavior: 'instant' })
   }
   for (const [index, photo] of gallery.entries()) {
+    const replace = uploadControl('Zamenjaj', url => { photo.src = url; renderContent() })
+    replace.classList.add('photo-replace')
+    $('input', replace).setAttribute('aria-label', 'Zamenjaj fotografijo')
     grid.append(node('article', { className: 'photo-edit' },
       node('img', { src: mediaPath(photo.src) ? photo.src : undefined, alt: photo.alt || '', loading: 'lazy' }),
-      node('div', { className: 'photo-controls' },
-        label('Opis fotografije', bind(photo, 'alt', { type: 'text', required: true, maxLength: 100 })),
-        uploadControl('Zamenjaj fotografijo', url => { photo.src = url; renderContent() }),
-        node('div', { className: 'photo-actions' },
-          node('button', { type: 'button', disabled: index === 0, 'aria-label': 'Premakni fotografijo prej', onclick: () => movePhoto(index, -1) }, '←'),
-          node('button', { type: 'button', disabled: index === gallery.length - 1, 'aria-label': 'Premakni fotografijo pozneje', onclick: () => movePhoto(index, 1) }, '→'),
-          btn('Odstrani', () => { gallery.splice(index, 1); dirty = true; renderContent() }, 'remove')))))
+      label('Opis fotografije', bind(photo, 'alt', { type: 'text', required: true, maxLength: 100 })),
+      node('div', { className: 'photo-actions' }, replace,
+        node('div', { className: 'photo-order' },
+          node('button', { type: 'button', disabled: index === 0, 'data-direction': -1, 'aria-label': 'Premakni fotografijo prej', onclick: () => movePhoto(index, -1) }, '↑'),
+          node('button', { type: 'button', disabled: index === gallery.length - 1, 'data-direction': 1, 'aria-label': 'Premakni fotografijo pozneje', onclick: () => movePhoto(index, 1) }, '↓')),
+        btn('Odstrani', () => {
+          gallery.splice(index, 1)
+          dirty = true
+          renderContent()
+          const target = $$('.photo-edit .remove', panel)[Math.min(index, gallery.length - 1)] || $('.photo-add input', panel)
+          target.focus()
+        }, 'remove'))))
   }
   galleryForm.append(grid)
-  const settings = edit.settings
-  const photos = [['hero', 'Uvodna fotografija'], ['storyPhoto', 'Fotografija pri zgodbi'], ['terracePhoto', 'Fotografija pri obisku']]
   galleryForm.append(node('fieldset', { className: 'settings-group' },
     node('legend', {}, 'Naslovne fotografije'), node('div', { className: 'fields' }, ...photos.map(([key, title]) =>
       node('div', {}, node('strong', {}, title), photoField(settings[key], url => { settings[key] = url }))))),
-  node('div', { className: 'editor-actions' }, btn('Shrani fotografije', event => {
-    if (!galleryForm.reportValidity()) return
-    const coverPhotos = Object.fromEntries(photos.map(([key]) => [key, settings[key]]))
-    action(event, () => save({ section: 'media', gallery, photos: coverPhotos }, 'Fotografije so posodobljene.'))
-  }, 'button primary')))
-  galleryForm.insertBefore(galleryForm.querySelector('.editor-actions'), grid)
+    node('div', { className: 'photo-footer' }, bottomFeedback, saveButton('Shrani spremembe')))
   return node('div', { className: 'editor media-editor' }, galleryForm)
 }
 
@@ -629,6 +679,8 @@ async function boot() {
     $('#owner-link').hidden = !kitchen || (!hostedReview && role !== 'owner')
     $('#kitchen-link').hidden = role !== 'owner' || kitchen
     $('#owner-nav').hidden = kitchen || role !== 'owner'
+    closeDisclosure(linksToggle)
+    closeDisclosure(sectionToggle)
     $('#signin-title').textContent = kitchen ? 'Kuhinjski servis' : 'Pult bistroja'
     $('#signin-description').textContent = kitchen ? 'Prijavite se za pregled naročenih porcij in pripravo miz.' : 'Prijavite se za urejanje rezervacij, dnevne ponudbe in fotografij.'
     say($('#preview-login'), session.preview ? 'Lokalni predogled · geslo: kosta-' + roleNeeded + '-demo' : '')
@@ -675,8 +727,28 @@ $('#logout').addEventListener('click', async () => {
     error(failure)
   }
 })
+const isOpen = toggle => toggle.getAttribute('aria-expanded') === 'true'
+function closeDisclosure(toggle, restoreFocus = false) {
+  if (!isOpen(toggle)) return
+  toggle.setAttribute('aria-expanded', 'false')
+  if (restoreFocus && toggle.getClientRects().length) toggle.focus({ preventScroll: true })
+}
+for (const toggle of [sectionToggle, linksToggle]) {
+  const region = toggle.parentElement
+  toggle.addEventListener('click', () => {
+    toggle.setAttribute('aria-expanded', String(!isOpen(toggle)))
+  })
+  region.addEventListener('keydown', event => {
+    if (event.key !== 'Escape' || !isOpen(toggle)) return
+    event.preventDefault()
+    closeDisclosure(toggle, true)
+  })
+  document.addEventListener('click', event => {
+    if (!region.contains(event.target)) closeDisclosure(toggle)
+  })
+}
 for (const button of $$('[data-view]')) button.addEventListener('click', () => {
-  if (view !== button.dataset.view) go(button.dataset.view)
+  if (view === button.dataset.view || go(button.dataset.view)) closeDisclosure(sectionToggle, true)
 })
 function adjacentDay(offset) {
   const day = new Date(date + 'T12:00:00Z')

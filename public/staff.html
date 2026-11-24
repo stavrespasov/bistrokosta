@@ -16,12 +16,15 @@
 <body class="team">
   <header class="staff-header">
     <a href="/" class="wordmark team-brand" aria-label="Bistro Kóšta, domov"><img src="/media/kosta-bowl.svg" width="36" height="36" alt=""><span>Kóšta</span><small>Za ekipo</small></a>
-    <nav class="staff-links" aria-label="Za ekipo">
-      <a href="/" id="public-link">Spletna stran <span aria-hidden="true">↗</span></a>
-      <a href="/admin" id="owner-link" hidden>Pult</a>
-      <a href="/kitchen" id="kitchen-link" hidden>Kuhinja <span aria-hidden="true">↗</span></a>
-      <button type="button" id="logout" class="plain" hidden>Odjava</button>
-    </nav>
+    <div class="staff-utilities">
+      <button type="button" id="staff-links-toggle" class="staff-disclosure" aria-expanded="false" aria-controls="staff-links">Bližnjice</button>
+      <nav class="staff-links" id="staff-links" aria-label="Bližnjice za ekipo">
+        <a href="/" id="public-link">Spletna stran <span aria-hidden="true">↗</span></a>
+        <a href="/admin" id="owner-link" hidden>Pult</a>
+        <a href="/kitchen" id="kitchen-link" hidden>Kuhinja <span aria-hidden="true">↗</span></a>
+        <button type="button" id="logout" class="plain" hidden>Odjava</button>
+      </nav>
+    </div>
   </header>
   <main>
     <section id="signin" class="signin" hidden>
@@ -41,7 +44,10 @@
     </section>
     <div id="workspace" hidden>
       <aside id="owner-nav" class="work-rail" hidden>
-        <nav class="staff-nav" aria-label="Upravljanje">
+        <button type="button" id="owner-view-toggle" class="staff-disclosure" aria-expanded="false" aria-controls="staff-sections">
+          <span>Upravljanje <strong id="owner-view-current">Dnevni pregled</strong></span>
+        </button>
+        <nav class="staff-nav" id="staff-sections" aria-label="Upravljanje">
           <p>Servis</p>
           <button data-view="overview" type="button">Dnevni pregled</button>
           <button data-view="reservations" type="button">Rezervacije</button>
@@ -58,7 +64,7 @@
       <div class="work-main">
         <div class="staff-title">
           <div><p class="eyebrow" id="staff-eyebrow">Bistro Kóšta · Pult</p><h1 id="staff-title">Dnevni pregled</h1></div>
-          <div class="staff-tools">
+          <div class="staff-tools" id="staff-tools">
             <time id="service-clock" aria-label="Trenutni čas v Kopru"></time>
             <div id="date-control" class="date-control"><button id="prev-day" class="day-arrow" aria-label="Prejšnji dan" type="button">‹</button><label><span class="sr-only">Datum</span><input id="service-date" type="date" required></label><button id="next-day" class="day-arrow" aria-label="Naslednji dan" type="button">›</button></div>
             <button id="today" type="button" class="button secondary small">Danes</button>
