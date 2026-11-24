@@ -14,7 +14,9 @@ export const editorialGallery = [
   asset('riba', 'Riba z limono', 'Pečena riba z limono na temnem krožniku', 1169, 1280),
   asset('predjed', 'Hladna predjed', 'Hladna predjed v belem krožniku z valovitim robom', 1254, 1254, true),
   asset('peresniki', 'Peresniki', 'Peresniki v belem krožniku na kamniti mizi', 1169, 1280),
-  asset('polpeti', 'Zelenjavni polpeti', 'Zelenjavni polpeti z omako na belem krožniku', 1169, 1280)
+  asset('polpeti', 'Zelenjavni polpeti', 'Zelenjavni polpeti z omako na belem krožniku', 1169, 1280),
+  asset('rigatoni', 'Rigatoni s sirom', 'Rigatoni z naribanim sirom na belem krožniku', 1169, 1280),
+  asset('kare', 'Meso s pečenim krompirjem', 'Pečeno meso s krompirjem in korenjem', 1280, 853, true)
 ].map((photo, index) => ({ ...photo, order: index }))
 
 export const originalTerrace = {
