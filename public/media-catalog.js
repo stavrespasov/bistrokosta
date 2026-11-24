@@ -23,8 +23,9 @@ export const originalTerrace = {
   id: 'terrace', src: '/media/kosta-terrace.webp', title: 'Terasa na Ferrarski',
   alt: 'Vhod v Bistro Kóšta in mize pod drevesom', width: 320, height: 240
 }
+export const terraceVisualization = asset('terrace-visualization', 'Vizualizacija terase', 'Vizualizacija vhoda in terase Bistra Kóšta z mizami pod drevesom', 1280, 720)
 
-const assets = [coverPhoto, storyPhoto, originalTerrace, ...editorialGallery]
+const assets = [coverPhoto, storyPhoto, originalTerrace, terraceVisualization, ...editorialGallery]
 export const mediaBySource = new Map(assets.map(photo => [photo.src, photo]))
 
 export function imageAttributes(photo, sizes) {

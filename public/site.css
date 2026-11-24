@@ -82,6 +82,11 @@
 }
 .visit-image {overflow:hidden;background:var(--sand);width:min(100%,740px);justify-self:center}
 .visit-image img {width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;object-position:center}
+.visit-wide {grid-template-columns:minmax(0,1fr);gap:clamp(24px,4vw,60px)}
+.visit-wide .visit-image {width:100%;max-width:min(1480px,142svh);background:transparent}
+.visit-wide .visit-image img {aspect-ratio:16/9}
+.visit-image figcaption {margin-top:8px;color:var(--muted);font-size:.82rem}
+.visit-wide .visit-copy {width:100%;max-width:1080px;justify-self:center;align-items:start}
 .visit-copy {min-width:0}
 .visit h2 {font-size:clamp(45px,5.9vw,95px)}
 .visit-heading p:not(.eyebrow) {margin-top:16px}
@@ -96,6 +101,10 @@
 .site-footer {border-top:1px solid var(--line);padding:20px var(--edge);display:flex;align-items:center;justify-content:space-between;gap:14px}
 .site-footer>a:last-child {font-size:.84rem}
 
+@media (min-width:701px) {
+  .visit-wide .visit-copy {display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(30px,6vw,92px)}
+  .visit-wide .visit-details {margin-top:0}
+}
 @media(prefers-reduced-motion:no-preference){
   .feature-copy>* {animation:feature-in .74s cubic-bezier(.17,.8,.21,1) both}
   .feature-copy h1 {animation-delay:.07s}
@@ -146,6 +155,7 @@
   .story-copy {padding:43px var(--edge) 36px}
   .visit {padding-block:44px}
   .visit-image {max-width:520px;grid-row:2;width:100%;justify-self:start}
+  .visit-wide .visit-image {max-width:none;grid-row:auto}
 }
 @media (max-width:370px) {
   :root {--edge:16px}

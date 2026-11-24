@@ -1,7 +1,7 @@
 import { $, $$, api, dateLabel, mediaPath, node, price, hostedReview } from './ui.js'
 
 import { paintGallery } from './gallery.js'
-import { imageAttributes, mediaBySource } from './media-catalog.js'
+import { imageAttributes, mediaBySource, originalTerrace, terraceVisualization } from './media-catalog.js'
 
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)')
 const text = (selector, value) => { $(selector).textContent = value }
@@ -51,12 +51,17 @@ function applySite(next) {
   ]) {
     if (next.settings[field] !== previous?.settings[field]) text(selector, next.settings[field])
   }
-  for (const [selector, field, sizes] of [
-    ['#hero-image', 'hero', '(max-width: 700px) 100vw, 53vw'],
-    ['#story-image', 'storyPhoto', '(max-width: 700px) 100vw, 52vw'],
-    ['#terrace-image', 'terracePhoto', '(max-width: 700px) 100vw, 55vw']
+  const terracePath = hostedReview && next.settings.terracePhoto === originalTerrace.src
+    ? terraceVisualization.src : next.settings.terracePhoto
+  const showVisualization = terracePath === terraceVisualization.src
+  $('#obisk').classList.toggle('visit-wide', showVisualization)
+  $('#terrace-caption').hidden = !showVisualization
+  if (showVisualization) text('#terrace-caption', terraceVisualization.title)
+  for (const [selector, path, sizes] of [
+    ['#hero-image', next.settings.hero, '(max-width: 700px) 100vw, 53vw'],
+    ['#story-image', next.settings.storyPhoto, '(max-width: 700px) 100vw, 52vw'],
+    ['#terrace-image', terracePath, '(max-width: 700px) 94vw, min(94vw, 142svh, 1480px)']
   ]) {
-    const path = next.settings[field]
     const image = $(selector)
     if (!mediaPath(path) || image.getAttribute('src') === path) continue
     const asset = mediaBySource.get(path)
@@ -80,9 +85,10 @@ function applySite(next) {
   if (JSON.stringify(previous?.settings.hours) !== JSON.stringify(next.settings.hours)) paintHours(next.settings.hours)
   if (JSON.stringify(previous?.gallery) !== JSON.stringify(next.gallery)) {
     paintGallery(next.gallery)
-    if (!previous && location.hash === '#galerija' && !$('#galerija').hidden) {
-      $('#galerija').scrollIntoView({ behavior: 'instant' })
-    }
+  }
+  if (!previous && ['#galerija', '#obisk'].includes(location.hash)) {
+    const target = $(location.hash)
+    if (!target.hidden) target.scrollIntoView({ behavior: 'instant' })
   }
 }
 
