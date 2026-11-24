@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -132,6 +132,33 @@ test('a published menu travels from the owner to a guest booking and the kitchen
     const service = await call('board?date=' + phoneDay, { cookie: kitchen.cookie })
     assert.equal(service.data.reservations[0].reference, saved.data.reference)
     assert.equal(service.data.service, undefined)
+
+    const beforePhotoEdit = (await call('content', { cookie: owner.cookie })).data
+    const image = await readFile(new URL('../public/media/editorial-kare-small.webp', import.meta.url))
+    const photo = { mime: 'image/webp', data: image.toString('base64') }
+    assert.equal((await call('media', { method: 'POST', body: photo })).status, 401)
+    const upload = await call('media', { method: 'POST', cookie: owner.cookie, body: photo })
+    assert.equal(upload.status, 201)
+    const source = upload.data.url
+    assert.equal((await put({ section: 'media', photos: {
+      hero: beforePhotoEdit.settings.hero, storyPhoto: beforePhotoEdit.settings.storyPhoto, terracePhoto: source
+    }, gallery: [{ src: source, alt: 'Fotografija za test' }] })).status, 200)
+    // Saving settings from another tab must preserve photos published in the meantime.
+    const settings = { ...beforePhotoEdit.settings, delivery: 'Nov urnik dostave.' }
+    assert.equal((await put({ section: 'settings', settings })).status, 200)
+    const published = (await call('site')).data
+    assert.equal(published.settings.terracePhoto, source)
+    assert.equal(published.settings.delivery, settings.delivery)
+    assert.deepEqual(published.gallery, [{ src: source, alt: 'Fotografija za test' }])
+    const file = await fetch(base + source)
+    assert.equal(file.status, 200)
+    assert.equal(file.headers.get('content-type'), 'image/webp')
+    assert.deepEqual(Buffer.from(await file.arrayBuffer()), image)
+
+    const fallbackPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jQ1sAAAAASUVORK5CYII='
+    const fallback = await call('media', { method: 'POST', cookie: owner.cookie, body: { mime: 'image/webp', data: fallbackPng } })
+    assert.equal(fallback.status, 201)
+    assert.equal((await fetch(base + fallback.data.url)).headers.get('content-type'), 'image/png')
   } finally {
     await new Promise(resolve => server.close(resolve))
     await rm(dir, { recursive: true, force: true })

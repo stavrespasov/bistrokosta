@@ -1,5 +1,6 @@
 import { renderKitchen } from './kitchen.js'
 import { planner, reports, serviceOverview } from './manager.js'
+import { photoAccept, preparePhoto } from './photo-upload.js'
 import { $, $$, api, dateLabel, dateToday, mediaPath, node, price, say, hostedReview } from './ui.js'
 
 const kitchen = location.pathname === '/kitchen'
@@ -380,43 +381,32 @@ function openTicket(record) {
   dialog.showModal()
 }
 
-async function upload(file) {
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Izberite JPEG, PNG ali WebP.')
-  const bitmap = await createImageBitmap(file)
-  const scale = Math.min(1, 1500 / Math.max(bitmap.width, bitmap.height))
-  const canvas = node('canvas', { width: Math.max(1, Math.round(bitmap.width * scale)), height: Math.max(1, Math.round(bitmap.height * scale)) })
-  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-  bitmap.close()
-  const data = canvas.toDataURL('image/webp', .88).split(',')[1]
-  return (await api('media', { method: 'POST', body: { mime: 'image/webp', data } })).url
-}
-
 function uploadControl(title, update) {
-  const file = node('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', onchange: async event => {
+  const status = node('p', { className: 'upload-feedback', role: 'status', hidden: true })
+  const file = node('input', { type: 'file', accept: photoAccept, onchange: async event => {
     const control = event.currentTarget
     if (!control.files[0]) return
     control.disabled = true
-    const holder = control.closest('.upload')
-    const text = $('span', holder)
     const editor = edit
-    text.textContent = 'Nalagamo …'
+    say(status, 'Nalagamo fotografijo …', 'pending')
     writes++
     try {
-      const url = await upload(control.files[0])
+      const body = await preparePhoto(control.files[0])
+      const { url } = await api('media', { method: 'POST', body })
       if (editor !== edit) return
       dirty = true
-      update(url)
-      say(notice, 'Slika je naložena. Shranite spremembe.', 'success')
+      const currentStatus = update(url) ?? (status.isConnected ? status : notice)
+      say(currentStatus, 'Fotografija je naložena. Shranite spremembe.', 'success')
     } catch (failure) {
-      error(failure)
+      if (failure.status === 401) error(failure)
+      else say(status.isConnected ? status : notice, failure.message, 'error')
     } finally {
       control.disabled = false
       control.value = ''
-      text.textContent = title
       writes--
     }
   } })
-  return node('label', { className: 'upload' }, node('span', {}, title), file)
+  return node('div', { className: 'upload-control' }, node('label', { className: 'upload' }, title, file), status)
 }
 
 function bind(item, key, options = {}) {
@@ -541,7 +531,11 @@ function mediaEditor() {
   const galleryForm = node('form', { onsubmit: submitPhotos })
   const grid = node('div', { className: 'photo-grid' })
   const saveButton = title => node('button', { type: 'submit', className: 'button primary' }, title)
-  const feedback = () => node('p', { className: 'photo-feedback', role: 'status', hidden: true })
+  const feedback = () => ({
+    status: node('p', { className: 'photo-feedback', role: 'status', hidden: true }),
+    link: node('a', { className: 'underlink photo-review-link', href: hostedReview ? '/?demo=1' : '/',
+      target: '_blank', rel: 'noopener', hidden: true }, hostedReview ? 'Odpri poskusno stran ↗' : 'Poglej na spletni strani ↗')
+  })
   const topFeedback = feedback()
   const bottomFeedback = feedback()
   const add = uploadControl('+ Dodaj fotografijo', url => {
@@ -549,25 +543,34 @@ function mediaEditor() {
     gallery.push({ src: url, alt: '' })
     renderContent()
     $$('.photo-edit input[type=text]', panel).at(-1)?.focus()
+    return $('.photo-edit:last-child .upload-feedback', panel)
   })
   add.classList.add('photo-add')
   galleryForm.append(node('div', { className: 'editor-top photo-editor-top' },
     node('div', {}, node('h2', {}, 'Galerija'), para('Fotografije in njihov vrstni red na spletni strani.')),
-    node('div', { className: 'photo-toolbar' }, add, saveButton('Shrani fotografije')), topFeedback))
+    node('div', { className: 'photo-toolbar' }, add, saveButton('Shrani fotografije')),
+    hostedReview ? node('p', { className: 'subtle photo-demo-note' },
+      'Za objavo na spletni strani se prijavite v ', node('a', { href: '/admin?view=media', className: 'underlink' }, 'pult za ekipo'), '.') : null,
+    node('div', { className: 'photo-save-result' }, topFeedback.status, topFeedback.link)))
 
   async function submitPhotos(event) {
     event.preventDefault()
-    const status = event.submitter?.closest('.photo-footer') ? bottomFeedback : topFeedback
+    const { status, link } = event.submitter?.closest('.photo-footer') ? bottomFeedback : topFeedback
     if (writes) return say(status, 'Počakajte, da se nalaganje konča.', 'error')
     const coverPhotos = Object.fromEntries(photos.map(([key]) => [key, settings[key]]))
     const controls = $$('input:enabled, select:enabled, button:enabled', galleryForm)
     controls.forEach(control => { control.disabled = true })
     writes++
-    say(topFeedback, '')
-    say(bottomFeedback, '')
+    for (const feedback of [topFeedback, bottomFeedback]) {
+      say(feedback.status, '')
+      feedback.link.hidden = true
+    }
     say(status, 'Shranjujemo …', 'pending')
     try {
-      await save({ section: 'media', gallery, photos: coverPhotos }, 'Fotografije so posodobljene.', { reload: false, status })
+      const message = hostedReview ? 'Fotografije so shranjene v poskusni strani.' : 'Fotografije so objavljene.'
+      await save({ section: 'media', gallery, photos: coverPhotos }, message, { reload: false, status })
+      for (const uploadStatus of $$('.upload-feedback', galleryForm)) say(uploadStatus, '')
+      link.hidden = false
       say(notice, '')
     } catch (failure) {
       say(status, failure.message, 'error')
@@ -591,7 +594,13 @@ function mediaEditor() {
     card.scrollIntoView({ block: 'nearest', behavior: 'instant' })
   }
   for (const [index, photo] of gallery.entries()) {
-    const replace = uploadControl('Zamenjaj', url => { photo.src = url; renderContent() })
+    const replace = uploadControl('Zamenjaj', url => {
+      const current = gallery.indexOf(photo)
+      if (current < 0) return
+      photo.src = url
+      renderContent()
+      return $('.upload-feedback', $$('.photo-edit', panel)[current])
+    })
     replace.classList.add('photo-replace')
     $('input', replace).setAttribute('aria-label', 'Zamenjaj fotografijo')
     grid.append(node('article', { className: 'photo-edit' },
@@ -613,7 +622,8 @@ function mediaEditor() {
   galleryForm.append(node('fieldset', { className: 'settings-group' },
     node('legend', {}, 'Naslovne fotografije'), node('div', { className: 'fields' }, ...photos.map(([key, title]) =>
       node('div', {}, node('strong', {}, title), photoField(settings[key], url => { settings[key] = url }))))),
-    node('div', { className: 'photo-footer' }, bottomFeedback, saveButton('Shrani spremembe')))
+    node('div', { className: 'photo-footer' }, node('div', { className: 'photo-save-result' }, bottomFeedback.status, bottomFeedback.link),
+      saveButton('Shrani spremembe')))
   return node('div', { className: 'editor media-editor' }, galleryForm)
 }
 

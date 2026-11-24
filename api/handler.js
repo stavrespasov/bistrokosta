@@ -189,12 +189,13 @@ async function mediaUpload(store, req) {
     'image/png': bytes => bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])),
     'image/webp': bytes => bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP'
   }
-  const verify = Object.hasOwn(types, input.mime) && types[input.mime]
-  if (!verify || typeof input.data !== 'string') throw new Problem(400, 'Izberite sliko JPEG, PNG ali WebP.')
+  if (typeof input.data !== 'string') throw new Problem(400, 'Izberite sliko JPEG, PNG ali WebP.')
   const bytes = Buffer.from(input.data, 'base64')
-  if (bytes.length > 2_100_000 || !verify(bytes)) throw new Problem(400, 'Slika mora biti veljavna in manjša od 2 MB.')
+  if (bytes.length > 2_100_000) throw new Problem(413, 'Slika mora biti manjša od 2 MB.')
+  const mime = Object.keys(types).find(type => types[type](bytes))
+  if (!mime) throw new Problem(400, 'Izberite veljavno sliko JPEG, PNG ali WebP.')
   const id = randomBytes(16).toString('hex')
-  await store.putMedia(id, input.mime, bytes)
+  await store.putMedia(id, mime, bytes)
   return { url: '/api/media/' + id }
 }
 
@@ -299,7 +300,7 @@ export default async function handler(req, res) {
         if (input.section === 'settings') {
           const settings = settingsFrom(input.settings)
           if (settings.bookingOpen && settings.autoConfirm && !preview && !emailConfigured()) throw new Problem(409, 'Za samodejne potrditve nastavite pošiljanje e-pošte. Za telefonske potrditve izklopite samodejno potrditev.')
-          state.settings = settings
+          Object.assign(state.settings, settings)
         } else if (input.section === 'regular') {
           state.regular = menuItems(input.items)
         } else if (input.section === 'daily' && validDate(input.date)) {

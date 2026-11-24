@@ -120,13 +120,20 @@ body.team {
 .photo-order {flex-wrap:nowrap}
 .photo-actions button:not(.remove){border:1px solid var(--desk-rule);border-radius:5px;width:44px;height:44px;color:var(--desk-ink);background:var(--desk-card)}
 .photo-actions .remove{min-height:44px;margin-left:auto}
-.team .photo-replace {padding-inline:9px}
+.team .photo-replace .upload {padding-inline:9px}
 .photo-actions button:disabled{opacity:.45}
+.upload-control {min-width:0;max-width:100%}
+.photo-actions .upload-control {display:contents}
+.upload-feedback {padding-top:4px;color:var(--desk-muted);font-size:.8rem;overflow-wrap:anywhere}
+.photo-actions .upload-feedback {flex-basis:100%;order:1}
+.upload-feedback[data-kind=error] {color:#793d32}
 .media-editor .settings-group .photo-field{margin-top:5px}
-.photo-toolbar,.photo-footer {display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:7px}
+.photo-toolbar,.photo-footer {display:flex;align-items:flex-start;justify-content:flex-end;flex-wrap:wrap;gap:7px}
 .photo-footer {padding-top:15px;border-top:1px solid var(--desk-rule)}
-.photo-editor-top>.photo-feedback {flex-basis:100%}
-.photo-footer>.photo-feedback {flex:1 1 190px}
+.photo-editor-top>.photo-save-result,.photo-editor-top>.photo-demo-note {flex-basis:100%}
+.photo-footer>.photo-save-result {flex:1 1 190px}
+.photo-save-result:not(:has(>:not([hidden]))) {display:none}
+.photo-save-result .photo-review-link {display:inline-flex;align-items:center;min-height:44px}
 .photo-feedback {font-weight:600;font-size:.88rem;color:var(--desk-muted);overflow-wrap:anywhere}
 .photo-feedback[data-kind=error]{color:#793d32}
 .photo-feedback[data-kind=success]{color:#315b50}
@@ -192,6 +199,7 @@ body.team {
   .signin-photo{display:none}.team .signin{grid-template-columns:1fr}
   .photo-toolbar {width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
   .team .photo-toolbar :is(.upload,.button) {padding-inline:6px;font-size:.84rem}
+  .photo-toolbar .upload {width:100%}
   .photo-grid {grid-template-columns:minmax(0,1fr);gap:10px}
   .photo-edit {grid-template-columns:clamp(64px,19vw,89px) minmax(0,1fr);align-items:center}
   .photo-edit>img {aspect-ratio:1}

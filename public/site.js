@@ -7,6 +7,7 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)')
 const text = (selector, value) => { $(selector).textContent = value }
 let site
 let menuTab = 'daily'
+let refreshId = 0
 
 function paintMenu() {
   if (!site) return
@@ -89,9 +90,13 @@ function applySite(next) {
 }
 
 async function refresh() {
-  try { applySite(await api('site')) }
+  const current = ++refreshId
+  try {
+    const data = await api('site')
+    if (current === refreshId) applySite(data)
+  }
   catch {
-    if (!site) text('#menu-items .empty', 'Menija trenutno ni mogoče naložiti. Za ponudbo nas pokličite.')
+    if (current === refreshId && !site) text('#menu-items .empty', 'Menija trenutno ni mogoče naložiti. Za ponudbo nas pokličite.')
   }
 }
 
