@@ -15,6 +15,31 @@ let submissionKey
 let started = false
 let bookingDemo = false
 let selectionDate
+let gallery = []
+let photoIndex = 0
+const viewer = $('#photo-viewer')
+
+function showPhoto(index) {
+  photoIndex = (index + gallery.length) % gallery.length
+  const photo = gallery[photoIndex]
+  $('#photo-full').src = photo.src
+  $('#photo-full').alt = photo.alt
+  text('#photo-title', photo.alt)
+  text('#photo-count', (photoIndex + 1) + ' / ' + gallery.length)
+}
+
+for (const button of $$('[data-photo-delta]')) {
+  button.addEventListener('click', () => showPhoto(photoIndex + Number(button.dataset.photoDelta)))
+}
+viewer.addEventListener('keydown', event => {
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    event.preventDefault()
+    showPhoto(photoIndex + (event.key === 'ArrowLeft' ? -1 : 1))
+  }
+})
+viewer.addEventListener('click', event => {
+  if (event.target === viewer && !viewer.querySelector(':hover')) viewer.close()
+})
 
 function menuRow(item) {
   const description = item.description && node('span', { className: 'subtle' }, item.description)
@@ -62,11 +87,14 @@ function applySite(next) {
       text(selector, settings[key])
     }
     for (const [selector, key] of [['#hero-image', 'hero'], ['#story-image', 'storyPhoto'], ['#terrace-image', 'terracePhoto']]) {
-      if (mediaPath(settings[key])) {
-        $(selector).src = settings[key]
-        $(selector).alt = next.gallery.find(photo => photo.src === settings[key])?.alt ||
-          ({ hero: 'Bistro Kóšta', storyPhoto: 'Iz kuhinje bistroja Kóšta', terracePhoto: 'Terasa bistroja Kóšta' })[key]
-      }
+      const path = settings[key]
+      if (!mediaPath(path)) continue
+      const img = $(selector)
+      if (img.getAttribute('src') === path) continue
+      if (key === 'hero') img.removeAttribute('srcset')
+      img.src = path
+      img.alt = next.gallery.find(photo => photo.src === path)?.alt ||
+        ({ hero: 'Bistro Kóšta', storyPhoto: 'Jedilnik bistroja Kóšta', terracePhoto: 'Bistro Kóšta v Kopru' })[key]
     }
     text('#strip-address', settings.address)
     const dial = settings.phone.replace(/[^\d+]/g, '').replace(/^0/, '+386')
@@ -78,17 +106,18 @@ function applySite(next) {
     updateHours(settings.hours)
   }
   if (JSON.stringify(previous?.gallery) !== JSON.stringify(next.gallery)) {
-    const sidePhoto = next.gallery.find(photo => mediaPath(photo.src) && photo.src !== settings.hero)
-    $('.cover-small').hidden = !sidePhoto
-    if (sidePhoto) {
-      $('#cover-side-image').src = sidePhoto.src
-      $('#cover-side-image').alt = sidePhoto.alt
-      text('#side-caption', sidePhoto.alt)
-    }
-    $('#galerija').hidden = !next.gallery.length
-    $('#gallery-more').hidden = next.gallery.length <= 3
-    $('#gallery').replaceChildren(...next.gallery.filter(photo => mediaPath(photo.src)).map(photo => node('figure', {},
-      node('img', { src: photo.src, alt: photo.alt, loading: 'lazy' }),
+    if (viewer.open) viewer.close()
+    gallery = next.gallery.filter(photo => mediaPath(photo.src))
+    $('#galerija').hidden = !gallery.length
+    $('#gallery-more').hidden = gallery.length <= 3
+    $('#gallery').replaceChildren(...gallery.map((photo, index) => node('figure', {},
+      node('a', { href: photo.src, 'aria-label': 'Odpri fotografijo: ' + photo.alt, onclick: event => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+        event.preventDefault()
+        showPhoto(index)
+        viewer.showModal()
+      } },
+        node('img', { src: photo.src, alt: photo.alt, loading: 'lazy' })),
       node('figcaption', {}, photo.alt))))
   }
   const phoneOnly = !hostedReview && !settings.bookingOpen
@@ -196,7 +225,7 @@ function showStep(next) {
   title.tabIndex = -1
   title.focus({ preventScroll: true })
   const position = title.getBoundingClientRect()
-  if (position.top < 84 || position.bottom > innerHeight - 25) title.scrollIntoView({ block: 'nearest', behavior: 'instant' })
+  if (position.top < 84 || position.bottom > innerHeight - 25) title.scrollIntoView({ block: 'nearest', behavior: reducedMotion.matches ? 'instant' : 'smooth' })
 }
 
 function renderDishes() {
@@ -335,6 +364,12 @@ if ('IntersectionObserver' in window && !reducedMotion.matches) {
     element.classList.add('awaiting')
     observer.observe(element)
   }
+}
+const hero = $('.cover-photo')
+const heroImage = $('#hero-image')
+if (!reducedMotion.matches) {
+  if (heroImage.complete && heroImage.naturalWidth) hero.classList.add('is-loaded')
+  else heroImage.addEventListener('load', () => hero.classList.add('is-loaded'), { once: true })
 }
 if ('BroadcastChannel' in window) {
   const updates = new BroadcastChannel('kosta-menu')
