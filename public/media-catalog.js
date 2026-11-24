@@ -4,8 +4,14 @@ const asset = (id, title, alt, width, height, featured = false) => ({
   small: '/media/editorial-' + id + '-small.webp'
 })
 
-export const coverPhoto = asset('bistro', 'Bistro Kóšta', 'Skleda hladne predjedi pod znakom Bistra Kóšta', 1169, 1280)
-export const storyPhoto = asset('kremna-juha', 'Kremna juha', 'Kremna juha v belem krožniku na kamniti mizi', 1280, 853)
+const previousCover = asset('bistro', 'Bistro Kóšta', 'Skleda hladne predjedi pod znakom Bistra Kóšta', 1169, 1280)
+export const soupPhoto = asset('kremna-juha', 'Kremna juha', 'Kremna juha v belem krožniku na kamniti mizi', 1280, 853)
+
+export const coverPhoto = {
+  id: 'marenda', title: 'Na žlico', alt: 'Skleda juhe s svežimi zelišči na leseni mizi',
+  width: 1536, height: 1024, smallWidth: 768, src: '/media/marenda-hero.webp', small: '/media/marenda-hero-small.webp'
+}
+export const storyPhoto = asset('focaccia', 'Domača focaccia', 'Roke oblikujejo focaccio v mehkem testu', 1440, 960)
 
 export const editorialGallery = [
   asset('lignji', 'Lignji na nabodalih', 'Zapečeni lignji na nabodalih z zelenjavo in limono', 1280, 853, true),
@@ -25,7 +31,7 @@ export const originalTerrace = {
 }
 export const terraceVisualization = asset('terrace-visualization', 'Vizualizacija terase', 'Vizualizacija vhoda in terase Bistra Kóšta z mizami pod drevesom', 1280, 720)
 
-const assets = [coverPhoto, storyPhoto, originalTerrace, terraceVisualization, ...editorialGallery]
+const assets = [previousCover, soupPhoto, coverPhoto, storyPhoto, originalTerrace, terraceVisualization, ...editorialGallery]
 export const mediaBySource = new Map(assets.map(photo => [photo.src, photo]))
 
 export function imageAttributes(photo, sizes) {
@@ -33,7 +39,7 @@ export function imageAttributes(photo, sizes) {
     alt: photo.alt,
     width: photo.width,
     height: photo.height,
-    srcset: photo.small ? photo.small + ' 640w, ' + photo.src + ' ' + photo.width + 'w' : '',
+    srcset: photo.small ? photo.small + ' ' + (photo.smallWidth || 640) + 'w, ' + photo.src + ' ' + photo.width + 'w' : '',
     sizes: photo.small ? sizes : ''
   }
 }

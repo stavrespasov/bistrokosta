@@ -95,3 +95,62 @@
   .calendar-nav button {min-width:39px}
   #times {grid-template-columns:repeat(auto-fill,minmax(55px,1fr))}
 }
+
+/* The photograph shares the hero with the address, leaving the form in reach on phones. */
+.booking-header {
+  background:var(--paper);
+  color:var(--ink);
+  padding-inline:max(var(--edge),calc((100% - 1170px)/2));
+  min-height:58px;
+}
+.booking-header .return-link {font:400 1.32rem/1 var(--display);letter-spacing:-.045em}
+.return-link em {font-weight:400}
+.booking-header .return-chevron {font:400 1.8rem/1 Georgia}
+.booking-header .header-call {font-weight:600;font-variant-numeric:tabular-nums}
+.booking-wrap {width:min(100%,1310px)}
+.booking-hero {isolation:isolate;position:relative;overflow:hidden;padding:0;display:flex;align-items:center;min-height:clamp(245px,25vw,385px);background:#173b38;color:#f9f6e9}
+.booking-photo {position:absolute;inset:0 0 0 35%;z-index:-2}
+.booking-photo img {width:100%;height:100%;object-fit:cover;object-position:center 48%}
+.booking-hero::before {content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#173b38 27%,#173b38f2 36%,#173b3877 53%,transparent 74%)}
+.booking-hero .booking-hero-copy {display:block;padding-block:38px}
+.booking-hero h1 {font-size:clamp(4.8rem,7.5vw,8.25rem);line-height:1.03;letter-spacing:-.07em}
+.booking-hero h1 em {display:block;font-weight:400;color:#f5d9b1}
+#booking-address {display:block;margin-top:15px;max-width:35ch;text-align:left;font-size:.95rem}
+.booking-content {padding-block:clamp(27px,4vw,65px) clamp(48px,8vw,125px)}
+.reservation-layout {gap:clamp(30px,7vw,120px)}
+.reservation-layout h2,#phone-booking h2 {font:400 clamp(2rem,3.3vw,3.7rem)/1.05 var(--display);letter-spacing:-.055em}
+.guest-count {border:0;background:#e7ede6;border-radius:1.1rem;padding:.5rem .85rem}
+.stepper {grid-template-columns:44px 27px 44px;gap:3px}
+.guest-count .stepper button {border-color:#bdc8bd}
+.calendar-label {display:flex;align-items:baseline;gap:.9rem;flex-wrap:wrap}
+.date-jump {display:inline-flex;position:relative;cursor:pointer;overflow:hidden;color:var(--deep-hover);text-decoration:underline;text-underline-offset:4px;align-items:center;justify-content:center;min-height:44px;font-weight:560}
+.date-jump:focus-within {outline:2px solid var(--deep);outline-offset:2px;border-radius:3px}
+.date-jump input[type=date] {position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.date-jump input::-webkit-calendar-picker-indicator {position:absolute;inset:0;width:auto;height:auto;cursor:pointer}
+#calendar-days {gap:.5rem}
+#calendar-days button {min-height:72px;border-radius:.95rem;background:#fffdf7;line-height:1.35}
+#calendar-days button span {font-size:.85rem}
+#calendar-days strong {font:400 1.8rem/1 var(--display)}
+#calendar-days button[aria-pressed=true],#times button[aria-pressed=true] {background:var(--deep);border-color:var(--deep);color:var(--on-deep)}
+#times {gap:.45rem;grid-template-columns:repeat(auto-fill,minmax(65px,1fr))}
+#times button {border-radius:2rem;background:#fffdf7}
+#next-open,#retry-times {display:block;font-size:.9rem}
+.reservation-contact input:not([type=checkbox]),.reservation-contact textarea {border-color:#b7c3b9;background:#fffdf7;border-radius:.65rem;min-height:47px}
+.booking-disclosure summary {min-height:48px}
+.booking-disclosure summary::after {color:var(--deep-hover)}
+.booking-checkout {border:0;padding:clamp(1rem,2.2vw,2rem);background:#e7ede6;border-radius:1.25rem}
+.booking-checkout .button,#receipt .button,#phone-booking .button {border-radius:3rem;padding:.82rem 1.4rem}
+#order-summary {color:var(--muted);font-size:.9rem;margin:.3rem 0}
+#booking-error {padding:.75rem 1rem;background:#f9e9df;border-radius:.6rem}
+.receipt-reference {background:#e7ede6;border:0;border-radius:.5rem;padding:.5rem .8rem}
+@media(max-width:690px){
+ .booking-hero {min-height:clamp(160px,30vw,220px)}
+ .booking-hero .booking-hero-copy {padding-block:24px}
+ .booking-hero h1 {font-size:clamp(2.85rem,9vw,4.5rem)}
+ .booking-photo {inset-inline-start:39%}
+ .booking-hero::before {background:linear-gradient(90deg,#173b38 33%,#173b38e6 44%,#173b3870 62%,transparent 85%)}
+ #booking-address {max-width:25ch;font-size:.79rem;margin-top:10px}
+ .calendar-label {gap:.5rem}
+ .booking-content {padding-top:24px}
+ .reservation-contact {border-color:var(--line);padding-top:22px}
+}

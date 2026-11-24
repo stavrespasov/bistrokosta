@@ -7,46 +7,45 @@
   <meta name="description" content="Bistro Kóšta na Ferrarski ulici v Kopru. Dnevne malice, domača focaccia in sezonske jedi. Poglejte meni in rezervirajte mizo.">
   <title>Bistro Kóšta · Koper</title>
   <link rel="icon" href="/media/mark.svg" type="image/svg+xml">
-  <link rel="preload" as="image" href="/media/editorial-bistro.webp" imagesrcset="/media/editorial-bistro-small.webp 640w, /media/editorial-bistro.webp 1169w" imagesizes="(max-width: 700px) 100vw, 53vw">
+  <link rel="preload" as="image" href="/media/marenda-hero.webp" imagesrcset="/media/marenda-hero-small.webp 768w, /media/marenda-hero.webp 1536w" imagesizes="100vw">
   <link rel="stylesheet" href="/base.css">
   <link rel="stylesheet" href="/site.css">
+  <link rel="stylesheet" href="/cover.css">
   <link rel="stylesheet" href="/gallery.css">
+  <link rel="stylesheet" href="/spread.css">
   <script type="module" src="/site.js"></script>
 </head>
 <body class="bistro">
 <a class="skip" href="#main">Preskoči na vsebino</a>
-<header class="masthead">
-  <a href="#main" class="bistro-brand" aria-label="Bistro Kóšta, domov"><img class="brand-mark" src="/media/mark.svg" width="32" height="32" alt=""><span>Kóšta</span></a>
-  <nav class="desktop-nav" aria-label="Glavna navigacija"><a href="#meni">Jedilnik</a><a href="#zgodba">Naš bistro</a><a href="#obisk">Obisk</a></nav>
-  <a class="header-book" data-book href="/rezervacije">Rezerviraj <span aria-hidden="true">↗</span></a>
-  <details class="mobile-nav"><summary aria-label="Odpri navigacijo"><span></span><span></span></summary>
-    <nav aria-label="Mobilna navigacija"><a href="#meni">Jedilnik</a><a href="#zgodba">Naš bistro</a><a href="#obisk">Obisk</a><a href="/admin" data-owner>Za ekipo</a></nav>
+<header class="table-header">
+  <a href="#main" class="table-brand" aria-label="Bistro Kóšta, domov"><span class="table-bowl" aria-hidden="true"></span><span>Bistro <i>Kóšta</i></span></a>
+  <nav class="table-nav" aria-label="Glavna navigacija"><a href="#meni">Jedilnik</a><a href="#zgodba">Naš bistro</a><a href="#obisk">Obisk</a></nav>
+  <a class="table-book" data-book href="/rezervacije">Rezerviraj mizo</a>
+  <details class="mobile-nav table-mobile"><summary aria-label="Kazalo"><span></span><span></span></summary>
+    <nav aria-label="Mobilna navigacija"><a href="#meni">Jedilnik</a><a href="#zgodba">Naš bistro</a><a href="#galerija">Fotografije</a><a href="#obisk">Obisk</a><a href="/admin" data-owner>Za ekipo</a></nav>
   </details>
 </header>
 <main id="main">
-  <section class="feature" aria-labelledby="feature-title">
-    <div class="feature-copy">
-      <p class="eyebrow">Na Ferrarski · Koper</p>
-      <h1 id="feature-title"><span>Na</span> <span>marendo.</span></h1>
-      <p id="intro">Dnevne malice, domača focaccia in nekaj dobrega na žlico.</p>
-      <div class="feature-actions">
-        <a class="button primary" href="#meni">Poglej jedilnik <span aria-hidden="true">↓</span></a>
-        <a class="feature-book" href="/rezervacije" data-book>Rezerviraj mizo <span aria-hidden="true">↗</span></a>
-      </div>
+  <section class="table-cover" aria-labelledby="feature-title">
+    <figure class="table-photo"><img id="hero-image" src="/media/marenda-hero.webp" srcset="/media/marenda-hero-small.webp 768w, /media/marenda-hero.webp 1536w" sizes="100vw" alt="Domača juha s svežimi zelišči na pogrnjeni mizi" width="1536" height="1024" fetchpriority="high"></figure>
+    <div class="table-copy">
+      <p class="table-location">Na Ferrarski · Koper</p>
+      <h1 id="feature-title"><i>Bistro</i><span>Kóšta</span></h1>
+      <p id="intro">Dnevne malice, domača focaccia in nekaj dobrega na žlico. Vsak dan na Ferrarski v Kopru.</p>
+      <div class="table-actions"><a class="table-menu" href="#meni">Poglej jedilnik</a></div>
     </div>
-    <figure class="feature-image">
-      <img id="hero-image" src="/media/editorial-bistro.webp" srcset="/media/editorial-bistro-small.webp 640w, /media/editorial-bistro.webp 1169w" sizes="(max-width: 700px) 100vw, 53vw" alt="Skleda hladne predjedi pod znakom Bistra Kóšta" width="1169" height="1280" fetchpriority="high">
-    </figure>
+    <div class="table-seal" aria-hidden="true"><img src="/media/rim.svg" width="112" height="112" alt=""><span class="table-bowl"></span></div>
   </section>
-  <aside class="service" aria-label="Naslov in kontakt">
-    <a id="strip-address" href="#obisk">Ferrarska ulica 5B, Koper</a>
-    <a href="#obisk">Danes <strong id="strip-hours"></strong></a>
+  <aside class="table-service" aria-label="Naslov in kontakt">
+    <a href="#obisk"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.4"/></svg><span id="strip-address">Ferrarska ulica 5B, Koper</span></a>
+    <a href="#obisk"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg><span>Danes <strong id="strip-hours"></strong></span></a>
     <a data-phone href="tel:+38670172114">070 172 114</a>
   </aside>
 
   <section class="menu-section section" id="meni" aria-labelledby="menu-title">
     <div class="menu-display">
-      <div class="reveal"><p class="eyebrow">Iz kuhinje</p><h2 id="menu-title">Jedilnik.</h2><p id="delivery">Dostava po Kopru do 11.00 ali po 13.00.</p></div>
+      <img class="menu-photo" src="/media/editorial-kremna-juha.webp" srcset="/media/editorial-kremna-juha-small.webp 640w, /media/editorial-kremna-juha.webp 1280w" sizes="(max-width: 700px) 100vw, 42vw" alt="Kremna juha v globokem krožniku" width="1280" height="853" loading="lazy">
+      <div class="menu-lettering"><p class="eyebrow">Iz kuhinje</p><h2 id="menu-title">Jedilnik.</h2></div>
     </div>
     <div class="menu-sheet">
       <div class="menu-modes" role="group" aria-label="Vrsta menija">
@@ -55,17 +54,18 @@
       </div>
       <p id="menu-date" class="eyebrow"></p>
       <div id="menu-items" aria-live="polite"><p class="empty">Nalagamo jedilnik …</p></div>
+      <p id="delivery">Dostava po Kopru do 11.00 ali po 13.00.</p>
       <a data-book href="/rezervacije" class="text-link">Rezerviraj mizo <span aria-hidden="true">↗</span></a>
     </div>
   </section>
 
   <section class="story" id="zgodba" aria-labelledby="story-title">
-    <figure class="story-photo reveal">
-      <img id="story-image" src="/media/editorial-kremna-juha.webp" srcset="/media/editorial-kremna-juha-small.webp 640w, /media/editorial-kremna-juha.webp 1280w" sizes="(max-width: 700px) 100vw, 52vw" alt="Kremna juha v belem krožniku na kamniti mizi" width="1280" height="853" loading="lazy" decoding="async">
+    <figure class="story-photo">
+      <img id="story-image" src="/media/editorial-focaccia.webp" srcset="/media/editorial-focaccia-small.webp 640w, /media/editorial-focaccia.webp 1440w" sizes="(max-width: 700px) 100vw, 63vw" alt="Roke oblikujejo focaccio v mehkem testu" width="1440" height="960" loading="lazy" decoding="async">
     </figure>
     <div class="story-copy reveal">
-      <p class="eyebrow">Na Ferrarski</p>
-      <h2 id="story-title">Vsak dan<br>kaj dobrega.</h2>
+      <p class="eyebrow">Domača focaccia</p>
+      <h2 id="story-title">Najprej <br>zamesimo.</h2>
       <p id="story-text">Focaccio zamesimo in spečemo sami. V naši kuhinji nastajajo tudi domači njoki in olivni pesto. Goveji golaž postrežemo s še toplo focaccio.</p>
       <a href="#obisk" class="text-link">Kako do nas <span aria-hidden="true">↘</span></a>
     </div>
@@ -73,22 +73,23 @@
 
   <section class="table-gallery" id="galerija" aria-labelledby="gallery-title" hidden>
     <div class="gallery-header reveal">
-      <h2 id="gallery-title">Okusi,<br> ki ostanejo.</h2>
-      <button type="button" class="text-link" id="gallery-expand">Odpri galerijo <span aria-hidden="true">↗</span></button>
+      <h2 id="gallery-title">Iz kuhinje.</h2>
+      <button type="button" class="text-link" id="gallery-expand"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></svg> Povečaj fotografijo</button>
     </div>
-    <div id="gallery" class="gallery-track" tabindex="0" role="region" aria-label="Fotografije jedi"></div>
+    <div id="gallery" class="gallery-track" tabindex="0" role="region" aria-label="Fotografije jedi" aria-roledescription="Galerija"></div>
     <div class="gallery-footer">
-      <div class="gallery-caption" aria-live="polite"><span id="gallery-count"></span><p id="gallery-caption"></p></div>
+      <div class="gallery-caption" aria-live="polite" aria-atomic="true"><span id="gallery-count"></span><p id="gallery-caption"></p></div>
       <progress id="gallery-progress" value="0" max="1" aria-label="Položaj v galeriji"></progress>
       <div class="gallery-arrows">
         <button type="button" id="gallery-prev" aria-label="Prejšnja fotografija" aria-controls="gallery">←</button>
         <button type="button" id="gallery-next" aria-label="Naslednja fotografija" aria-controls="gallery">→</button>
       </div>
     </div>
+    <nav class="spread-index" id="gallery-index" aria-label="Izberi fotografijo"></nav>
   </section>
 
   <section class="reserve-strip" id="rezervacija" aria-labelledby="reserve-title">
-    <h2 id="reserve-title">Pri nas za mizo.</h2>
+    <div><p class="eyebrow">Rezervacije</p><h2 id="reserve-title">Prisedite.</h2></div>
     <a class="button primary" data-book href="/rezervacije">Poišči termin <span aria-hidden="true">↗</span></a>
   </section>
 

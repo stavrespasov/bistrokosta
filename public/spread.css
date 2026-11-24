@@ -1,0 +1,63 @@
+/* The photo strip has a full spread, a glimpse of the next plate, and a contact sheet. */
+.table-gallery {
+  --spread-edge:var(--edge);
+  --spread-width:min(79vw, 1550px);
+  --spread-gap:clamp(12px,1.35vw,32px);
+  --spread-height:clamp(320px, min(63svh, 51vw), 820px);
+  --spread-paper:#f5ecd9;
+  color:var(--spread-paper);
+  background:#242822;
+  padding-block:clamp(48px,6vw,96px) clamp(38px,5vw,86px);
+}
+.gallery-header {align-items:end;border-top:1px solid #efe8d657;margin-bottom:clamp(18px,2.2vw,40px);padding-top:clamp(14px,2.5vw,40px)}
+.gallery-header h2 {font-size:clamp(64px,9.8vw,174px);line-height:.98;letter-spacing:-.071em}
+.gallery-header .text-link {min-height:44px;gap:8px;font-size:.92rem}
+.gallery-track {gap:var(--spread-gap);padding-inline:var(--spread-edge);scroll-padding-inline:var(--spread-edge)}
+.gallery-plate,.gallery-plate[data-featured=true] {flex:0 0 var(--spread-width);position:relative}
+.gallery-track::after {content:"";flex:0 0 max(0px,calc(100vw - var(--last-spread,var(--spread-width)) - var(--spread-gap) - var(--spread-edge) - var(--spread-edge)))}
+.gallery-plate a {position:relative;background:#393c33}
+.gallery-plate img,.gallery-plate[data-landscape=true] img {height:var(--spread-height);aspect-ratio:auto;object-fit:cover}
+.gallery-plate figcaption {display:none}
+.gallery-footer {margin-top:16px;padding-bottom:clamp(13px,1.5vw,22px);border-bottom:1px solid #efe8d657;grid-template-columns:minmax(0,1.4fr) minmax(4vw,18vw) auto;gap:clamp(12px,2vw,34px)}
+.gallery-caption {gap:clamp(16px,2vw,34px)}
+.gallery-caption p {font:400 clamp(26px,3.25vw,62px)/1.12 var(--display);letter-spacing:-.05em}
+#gallery-count {color:var(--spread-paper);white-space:nowrap;font-size:.9rem;font-variant-numeric:tabular-nums}
+.gallery-arrows button {border-color:#f1e9d8a8;color:var(--spread-paper);width:48px;height:48px}
+.gallery-arrows button:not(:disabled):hover {background:var(--spread-paper);color:#242822}
+#gallery-progress {color:var(--spread-paper)}
+#gallery-progress::-webkit-progress-value {background:var(--spread-paper)}
+#gallery-progress::-moz-progress-bar {background:var(--spread-paper)}
+.spread-index {position:relative;display:flex;align-items:center;gap:8px;margin:14px var(--edge) 0;overflow:auto;padding:4px 2px 6px;scrollbar-width:thin;scrollbar-color:#cfc7b5 #242822}
+.spread-index button {position:relative;flex:0 0 clamp(52px,5vw,90px);height:clamp(46px,3.6vw,64px);padding:3px;border:1px solid transparent;color:var(--spread-paper);background:transparent}
+.spread-index img {width:100%;height:100%;object-fit:cover;opacity:.63;transition:opacity .22s}
+.spread-index button:is([aria-current],:hover,:focus-visible) img {opacity:1}
+.spread-index button[aria-current] {border-color:currentColor}
+.spread-index button:focus-visible {outline-offset:0}
+@media(min-width:701px) {
+  .table-gallery {--portrait-spread:clamp(320px, min(64svh,52vw),840px)}
+  .gallery-plate[data-landscape=false] {flex-basis:var(--portrait-spread)}
+  .gallery-track[data-last-landscape=false] {--last-spread:var(--portrait-spread)}
+}
+@media(min-width:701px) and (prefers-reduced-motion:no-preference) {
+  @supports (animation-timeline:view(inline)) {
+    .gallery-plate {view-timeline-name:--plate;view-timeline-axis:inline}
+    .gallery-plate img {animation:dish-pan linear both;animation-timeline:--plate;animation-range:entry 0% exit 100%}
+    @keyframes dish-pan {from {transform:translateX(-2.4%) scale(1.075)} to {transform:translateX(2.4%) scale(1.075)}}
+  }
+}
+@media(max-width:700px) {
+  .table-gallery {--spread-width:calc(100vw - var(--spread-edge) - 35px);--spread-gap:10px;--spread-height:clamp(235px,min(108vw,53svh),560px)}
+  .gallery-header {flex-direction:row;align-items:center;gap:8px}
+  .gallery-header h2 {font-size:clamp(45px,11.8vw,78px)}
+  .gallery-header .text-link {font-size:.83rem;line-height:1.15;max-width:110px}
+  .gallery-footer {grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
+  .gallery-caption {align-items:start;flex-direction:column;gap:4px}
+  .gallery-caption p {font-size:clamp(24px,6vw,38px)}
+  .gallery-arrows {gap:5px}
+  .gallery-arrows button {width:44px;height:44px}
+  #gallery-progress {grid-column:1/-1;grid-row:2}
+  .spread-index {margin-top:10px}
+}
+@media(prefers-reduced-motion:reduce) {
+  .spread-index img,.gallery-plate img {transition:none}
+}

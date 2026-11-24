@@ -12,19 +12,23 @@
   <script type="module" src="/reservations.js"></script>
 </head>
 <body class="reservation-page">
-  <a class="skip" href="#rezervacija">Preskoči na rezervacijo</a>
+  <a class="skip" href="#termin">Preskoči na rezervacijo</a>
   <header class="booking-header">
-    <a class="return-link" data-site-link href="/" aria-label="Nazaj na Bistro Kóšta"><span aria-hidden="true">←</span><span>Bistro Kóšta</span></a>
+    <a class="return-link" data-site-link href="/" aria-label="Nazaj na Bistro Kóšta"><span class="return-chevron" aria-hidden="true">‹</span><span>Bistro <em>Kóšta</em></span></a>
     <a data-phone class="header-call" href="tel:+38670172114">070 172 114</a>
   </header>
   <main id="rezervacija">
     <div class="booking-hero">
-      <div class="booking-wrap">
-        <div><p class="eyebrow">Bistro Kóšta · Koper</p><h1>Rezerviraj mizo.</h1></div>
-        <p id="booking-address">Ferrarska ulica 5B,<br> 6000 Koper</p>
+      <picture class="booking-photo">
+        <source media="(max-width: 600px)" srcset="/media/editorial-lignji-small.webp">
+        <img src="/media/editorial-lignji.webp" width="1280" height="853" alt="Zapečeni lignji na nabodalih z limono" fetchpriority="high">
+      </picture>
+      <div class="booking-wrap booking-hero-copy">
+        <h1>Miza <em>za vas.</em></h1>
+        <p id="booking-address">Ferrarska ulica 5B, 6000 Koper</p>
       </div>
     </div>
-    <div class="booking-wrap booking-content">
+    <div class="booking-wrap booking-content" id="termin">
       <p id="booking-unavailable" class="empty" role="status">Preverjamo proste termine …</p>
       <section id="phone-booking" hidden>
         <h2>Pokličite za mizo</h2>
@@ -48,7 +52,9 @@
             <fieldset class="calendar">
               <legend class="sr-only">Dan obiska</legend>
               <div class="calendar-head">
-                <p id="calendar-period" aria-live="polite"></p>
+                <div class="calendar-label"><p id="calendar-period" aria-live="polite"></p>
+                  <label class="date-jump">Drug datum<input id="choose-date" type="date" aria-label="Izberite drug datum"></label>
+                </div>
                 <div class="calendar-nav">
                   <button type="button" id="calendar-prev" aria-label="Prejšnji dnevi">‹</button>
                   <button type="button" id="calendar-next" aria-label="Naslednji dnevi">›</button>
@@ -59,19 +65,20 @@
             <fieldset class="hours-picker" id="time-field">
               <legend>Proste ure</legend>
               <p id="slot-status" role="status" hidden></p>
+              <button class="text-link" type="button" id="next-open" hidden>Poišči naslednji prost dan</button>
               <div id="times"></div>
               <button class="text-link" type="button" id="retry-times" hidden>Preveri znova</button>
             </fieldset>
           </section>
           <section class="reservation-contact" aria-labelledby="contact-title">
-            <h2 id="contact-title">Vaši podatki</h2>
+            <h2 id="contact-title">Na čigavo ime?</h2>
             <div class="fields">
               <label>Ime in priimek<input name="name" autocomplete="name" required maxlength="90"></label>
-              <label>Telefon<input name="phone" type="tel" autocomplete="tel" required maxlength="32"></label>
+              <label>Telefon<input name="phone" type="tel" autocomplete="tel" required minlength="6" maxlength="32"></label>
               <label>E-pošta<input name="email" type="email" autocomplete="email" required maxlength="180"></label>
             </div>
             <details class="booking-disclosure">
-              <summary>Dodaj opombo</summary>
+              <summary>Dodaj opombo za bistro</summary>
               <label class="note-label"><span class="sr-only">Opomba za bistro</span><textarea name="notes" rows="2" maxlength="500" placeholder="Npr. alergija ali otroški stolček"></textarea></label>
             </details>
             <details id="preorder" class="booking-disclosure preorder" hidden>
@@ -83,8 +90,8 @@
           </section>
         </div>
         <div class="booking-checkout">
-          <div><p id="booking-summary" aria-live="polite"></p><p id="confirm-method" class="subtle"></p></div>
-          <button type="submit" class="button primary">Pošlji zahtevo <span aria-hidden="true">↗</span></button>
+          <div><p id="booking-summary" aria-live="polite"></p><p id="order-summary" hidden></p><p id="confirm-method" class="subtle"></p></div>
+          <button type="submit" class="button primary">Pošlji povpraševanje</button>
         </div>
         <p id="booking-error" class="error" role="alert" hidden></p>
       </form>
