@@ -1,6 +1,8 @@
+import { renderKitchen } from './kitchen.js'
 import { $, $$, api, dateLabel, dateToday, mediaPath, node, price, say, hostedReview } from './ui.js'
 
 const kitchen = location.pathname === '/kitchen'
+document.body.classList.toggle('kitchen', kitchen)
 const roleNeeded = kitchen ? 'kitchen' : 'owner'
 const panel = $('#panel')
 const dateInput = $('#service-date')
@@ -12,11 +14,11 @@ const statusNames = {
   completed: 'Zaključeno', cancelled: 'Preklicano', 'no-show': 'Ni prišel'
 }
 const prep = { queued: 'Za pripravo', preparing: 'V pripravi', ready: 'Pripravljeno', served: 'Postreženo' }
-const nextPrep = { queued: ['preparing', 'Začni pripravo'], preparing: ['ready', 'Označi pripravljeno'], ready: ['served', 'Označi postreženo'] }
 const emailNames = { phone: 'Dogovor po telefonu', waiting: 'Čaka', sending: 'Pošiljanje', sent: 'Poslano', failed: 'Pošiljanje ni uspelo', unconfigured: 'Ni nastavljeno', preview: 'Predogled' }
-const titles = { reservations: 'Rezervacije.', daily: 'Dnevni meni.', regular: 'Stalna ponudba.', media: 'Fotografije.', settings: 'Nastavitve.' }
+const titles = { overview: 'Dnevni pregled', reservations: 'Rezervacije', daily: 'Dnevni meni', regular: 'Stalna ponudba', media: 'Fotografije', settings: 'Nastavitve' }
 let view = 'reservations'
 let statusFilter = 'all'
+let searchTerm = ''
 let reservations = []
 let service
 let request
@@ -69,13 +71,16 @@ async function action(event, operation, done) {
   }
 }
 
-function go(next, nextDate = date) {
+function go(next, nextDate = date, reference = '') {
   if (dirty && !confirm('Neshranjene spremembe bodo izgubljene. Želite nadaljevati?')) {
     dateInput.value = date
+    $('#mobile-view').value = view
     return
   }
   dirty = false
   edit = null
+  searchTerm = reference
+  statusFilter = 'all'
   view = next
   date = nextDate
   dateInput.value = date
@@ -87,8 +92,10 @@ function go(next, nextDate = date) {
   $('#owner-link').href = '/admin?' + (hostedReview ? 'demo=1&' : '') + 'date=' + date
   say(notice, '')
   for (const button of $$('[data-view]')) button.setAttribute('aria-pressed', button.dataset.view === view)
-  $('#staff-title').textContent = kitchen ? 'Servis.' : titles[view]
-  $('#date-control').hidden = !['reservations', 'daily'].includes(view)
+  $('#mobile-view').value = view
+  document.title = (kitchen ? 'Kuhinja' : titles[view]) + ' · Bistro Kóšta'
+  $('#staff-title').textContent = kitchen ? 'Kuhinjski servis' : titles[view]
+  $('#date-control').hidden = !['overview', 'reservations', 'daily'].includes(view)
   $('#today').hidden = $('#date-control').hidden
   panel.replaceChildren(para('Nalagamo …', 'empty'))
   load()
@@ -98,7 +105,7 @@ async function load({ quiet = false } = {}) {
   request?.abort()
   const controller = new AbortController()
   request = controller
-  const isBoard = view === 'reservations'
+  const isBoard = ['overview', 'reservations'].includes(view)
   try {
     const result = await api((isBoard ? 'board' : 'content') + '?' + new URLSearchParams({ date, view: kitchen ? 'kitchen' : view }), { signal: controller.signal })
     if (controller.signal.aborted) return
@@ -107,10 +114,11 @@ async function load({ quiet = false } = {}) {
       renderContent()
       return
     }
+    if (quiet && (document.activeElement?.matches('.board-filters input, .board-filters select') || dialog.open)) return
     if (quiet && JSON.stringify(result.reservations) === JSON.stringify(reservations) && JSON.stringify(result.service) === JSON.stringify(service)) return
     service = result.service
     reservations = result.reservations
-    if (kitchen) renderKitchen()
+    if (kitchen) renderKitchen({ panel, reservations, date, changeTicket, action })
     else renderBoard()
   } catch (failure) {
     if (controller.signal.aborted) return
@@ -124,35 +132,64 @@ async function changeTicket(id, patch) {
   await load()
 }
 
+function reservationRow(record) {
+  const next = { pending: ['Potrdi', 'confirmed'], confirmed: ['Gostje so prišli', 'seated'], seated: ['Zaključi', 'completed'] }[record.status]
+  return node('article', { className: 'ticket' },
+    node('time', { className: 'ticket-time', dateTime: record.time }, record.time),
+    node('div', { className: 'ticket-middle' }, node('strong', { className: 'ticket-name' }, record.name),
+      para(record.party + ' oseb' + (record.table ? ' · Miza ' + record.table : '') + ' · ' + record.reference, 'ticket-meta'),
+      record.items.length ? para(record.items.map(item => item.quantity + ' × ' + item.name).join(' · '), 'ticket-items') : null),
+    pill(record.status, statusNames),
+    node('div', { className: 'ticket-actions' },
+      record.status === 'pending' && record.phone ? node('a', { className: 'call-guest', href: 'tel:' + record.phone.replace(/[^+0-9]/g, ''), 'aria-label': 'Pokliči gosta: ' + record.name }, 'Pokliči') : null,
+      btn('Odpri', () => openTicket(record)),
+      next ? btn(next[0], event => action(event, () => changeTicket(record.id, { status: next[1] }), 'Status je posodobljen.'), 'button secondary small') : null))
+}
+
 function renderBoard() {
-  const records = statusFilter === 'all' ? reservations : reservations.filter(r => r.status === statusFilter)
+  const activeRecords = reservations.filter(active)
+  const pending = activeRecords.filter(r => r.status === 'pending').length
+  const portions = reservations.filter(r => ['confirmed', 'seated'].includes(r.status)).flatMap(r => r.items)
+    .reduce((total, item) => total + item.quantity, 0)
   const stats = node('div', { className: 'stats' },
-    stat(reservations.filter(active).length, 'Aktivne rezervacije'),
-    stat(reservations.filter(active).reduce((count, r) => count + r.party, 0), 'Pričakovani gostje'),
-    stat(reservations.filter(r => r.status === 'pending').length, 'Čakajo na potrditev'),
-    stat(reservations.filter(r => ['confirmed', 'seated'].includes(r.status)).flatMap(r => r.items).reduce((count, item) => count + item.quantity, 0), 'Potrjene porcije'))
-  const tools = node('div', { className: 'board-tools' },
-    node('div', { className: 'board-caption' }, node('h2', {}, 'Seznam miz'), para(dateLabel(date))),
-    btn('+ Vpiši rezervacijo', openDeskBooking, 'button primary small'),
-    select(statusFilter, { all: 'Vsi statusi', ...statusNames }, value => { statusFilter = value; renderBoard() }, 'Filtriraj status'))
-  const tickets = node('div', { className: 'tickets' }, ...records.map(record => {
-    const quick = record.status === 'pending' ? ['Potrdi', 'confirmed']
-      : record.status === 'confirmed' ? ['Gostje so prišli', 'seated']
-      : record.status === 'seated' ? ['Zaključi', 'completed'] : null
-    return node('article', { className: 'ticket' },
-      node('time', { className: 'ticket-time', dateTime: record.time }, record.time),
-      node('div', { className: 'ticket-middle' }, node('span', { className: 'ticket-name' }, record.name),
-        node('div', { className: 'ticket-meta' }, String(record.party) + ' oseb · ' + record.reference + (record.table ? ' · Miza ' + record.table : ''), pill(record.status, statusNames)),
-        record.items.length ? para(record.items.map(item => item.quantity + ' × ' + item.name).join(' · '), 'ticket-items') : null),
-      node('div', { className: 'ticket-actions' }, btn('Odpri', () => openTicket(record)), quick ? btn(quick[0], event =>
-        action(event, () => changeTicket(record.id, { status: quick[1] }), 'Status je posodobljen.'), 'button primary small') : null))
-  }))
-  const digest = node('div', { className: 'service-digest' },
-    node('div', {}, node('strong', {}, 'Dnevni meni'), para(service.published ? 'Objavljeno · ' + service.dishes + ' jedi' : 'Za ta dan še ni objavljen.'),
-      btn('Uredi meni →', () => go('daily'), 'plain')),
-    node('div', {}, node('strong', {}, 'Rezervacije'), para(service.bookingOpen ? 'Spletne rezervacije so odprte.' : 'Rezervacije sprejemate po telefonu.'),
-      btn('Nastavitve →', () => go('settings'), 'plain')))
-  panel.replaceChildren(stats, digest, tools, records.length ? tickets : para('Za izbrani datum in status ni rezervacij.', 'empty'))
+    stat(activeRecords.reduce((n, r) => n + r.party, 0), 'Gostje v servisu'),
+    stat(activeRecords.length, 'Rezervirane mize'), stat(pending, 'Čakajo na potrditev'), stat(portions, 'Naročene porcije'))
+  const isOverview = view === 'overview'
+  const list = node('div', { className: 'tickets' })
+  function updateList() {
+    const query = searchTerm.trim().toLocaleLowerCase('sl')
+    const records = isOverview ? activeRecords : reservations.filter(record =>
+      (statusFilter === 'all' || record.status === statusFilter) && (!query ||
+      [record.name, record.reference, record.table, record.phone].some(value => String(value || '').toLocaleLowerCase('sl').includes(query))))
+    list.replaceChildren(...(records.length ? records.map(reservationRow) : [
+      node('div', { className: 'empty-board' },
+        node('h3', {}, reservations.length && !isOverview ? 'Ni zadetkov' : 'Ni napovedanih miz'),
+        para(reservations.length && !isOverview ? 'Spremenite iskalni niz ali status.' : 'Telefonsko rezervacijo lahko vpišete za izbrani dan.'))
+    ]))
+  }
+  const create = btn('+ Vpiši rezervacijo', openDeskBooking, 'button primary small')
+  const listHead = node('div', { className: 'board-tools' }, node('div', {},
+    node('h2', {}, isOverview ? 'Prihodi' : 'Seznam miz'), para(dateLabel(date))), create)
+  const filters = node('div', { className: 'board-filters' },
+    input(searchTerm, { type: 'search', placeholder: 'Ime, telefon, miza ali številka', 'aria-label': 'Poišči rezervacijo',
+      oninput: event => { searchTerm = event.currentTarget.value; updateList() } }),
+    select(statusFilter, { all: 'Vsi statusi', ...statusNames }, value => { statusFilter = value; updateList() }, 'Filtriraj status'))
+  updateList()
+  const reservationList = node('section', { className: 'service-list' }, listHead, isOverview ? null : filters, list,
+    isOverview ? btn('Vse rezervacije →', () => go('reservations'), 'plain list-link') : null)
+  if (!isOverview) return panel.replaceChildren(reservationList)
+  const menu = node('div', { className: 'menu-status' }, node('span', { className: 'service-label' }, 'Izbrani dan'),
+    node('h2', {}, 'Dnevni meni'), para(service.published ? 'Objavljeno · ' + service.dishes + ' jedi' : service.dishes ? 'Osnutek · ' + service.dishes + ' jedi' : 'Za ta dan še ni objavljen.'),
+    btn('Uredi meni →', () => go('daily'), 'button secondary small'))
+  const channels = node('div', { className: 'channel-status' }, node('h3', {}, 'Sprejem rezervacij'),
+    para(service.bookingOpen ? 'Spletne rezervacije so odprte.' : 'Rezervacije sprejemate po telefonu.'),
+    btn('Nastavitve rezervacij →', () => go('settings'), 'plain'))
+  const queue = service.pendingCount ? node('div', { className: 'channel-status pending-queue' },
+    node('h3', {}, 'Čakajo na potrditev (' + service.pendingCount + ')'),
+    ...service.pending.map(record => btn(record.name + ' · ' + dateLabel(record.date) + ' ob ' + record.time,
+      () => go('reservations', record.date, record.reference), 'plain queue-entry'))) : null
+  const actions = node('aside', { className: 'service-aside' }, queue, menu, channels)
+  panel.replaceChildren(stats, node('div', { className: 'overview-grid' }, reservationList, actions))
 }
 
 function openDeskBooking() {
@@ -164,6 +201,10 @@ function openDeskBooking() {
   const guest = input('', { required: true, maxLength: 90 })
   const phone = input('', { type: 'tel', required: true, maxLength: 32 })
   const notes = node('textarea', { rows: 2, maxLength: 500 })
+  const menuDetails = node('details', { className: 'desk-order' })
+  const menuLines = node('div', { className: 'desk-order-lines' })
+  menuDetails.append(node('summary', {}, 'Dodaj prednaročilo'), menuLines)
+  const quantities = new Map()
   const message = para('', 'error')
   message.setAttribute('role', 'status')
   const submit = node('button', { type: 'submit', className: 'button primary', disabled: true }, 'Potrdi rezervacijo')
@@ -177,6 +218,20 @@ function openDeskBooking() {
     try {
       const result = await api('availability?' + new URLSearchParams({ date: day.value, party: guests.value, desk: '1' }))
       if (current !== sequence) return
+      const dishes = [['daily', 'Dnevni meni'], ['regular', 'Stalna ponudba']].flatMap(([section, group]) =>
+        result.menu[section].filter(dish => dish.preorder && dish.price !== null)
+          .map(dish => ({ ...dish, selection: section + ':' + dish.id, group })))
+      const wanted = new Set(dishes.map(dish => dish.selection))
+      for (const key of quantities.keys()) if (!wanted.has(key)) quantities.delete(key)
+      menuDetails.hidden = !dishes.length
+      menuLines.replaceChildren(...dishes.map(dish => {
+        const current = Math.min(quantities.get(dish.selection) || 0, Number(guests.value) * 3)
+        quantities.set(dish.selection, current)
+        return node('label', { className: 'desk-dish' },
+          node('span', {}, node('strong', {}, dish.name), para(dish.group + ' · ' + price(dish.price), 'subtle')),
+          input(String(current), { type: 'number', min: '0', max: String(Number(guests.value) * 3),
+            'aria-label': 'Porcije · ' + dish.name, oninput: event => quantities.set(dish.selection, Number(event.currentTarget.value)) }))
+      }))
       time.replaceChildren(...result.slots.map(slot => node('option', { value: slot }, slot)))
       say(message, result.slots.length ? '' : 'Ni prostih ur. Izberite drug datum ali število gostov.')
       submit.disabled = !result.slots.length
@@ -188,7 +243,7 @@ function openDeskBooking() {
   guests.addEventListener('input', times)
   editor.append(node('div', { className: 'fields two' }, label('Datum', day), label('Gostje', guests)),
     label('Prosta ura', time), label('Ime in priimek', guest), label('Telefon', phone),
-    label('Opomba za kuhinjo', notes), message, submit)
+    menuDetails, label('Opomba za kuhinjo', notes), message, submit)
   editor.addEventListener('submit', async event => {
     event.preventDefault()
     if (submit.disabled) return
@@ -196,10 +251,10 @@ function openDeskBooking() {
     try {
       await api('desk-reservations', { method: 'POST', body: {
         date: day.value, time: time.value, party: Number(guests.value), name: guest.value,
-        phone: phone.value, notes: notes.value, key
+        phone: phone.value, notes: notes.value, key,
+        items: [...quantities].filter(([, quantity]) => quantity > 0).map(([id, quantity]) => ({ id, quantity }))
       } })
       dialog.close()
-      statusFilter = 'all'
       go('reservations', day.value)
       say(notice, 'Telefonska rezervacija je potrjena.', 'success')
     } catch (failure) {
@@ -262,7 +317,7 @@ function openTicket(record) {
         $('input[type=text], input:not([type])', orderLines.lastElementChild)?.focus()
       }, 'plain')),
     dialogError, node('div', { className: 'dialog-actions' }, submit,
-      record.email && record.status === 'confirmed' && !['sent', 'preview'].includes(record.emailStatus)
+      record.email && record.confirmationChannel !== 'phone' && record.status === 'confirmed' && !['sent', 'preview', 'phone'].includes(record.emailStatus)
         ? btn('Ponovi pošiljanje', event => action(event, async () => {
           await changeTicket(record.id, { retryEmail: true })
           dialog.close()
@@ -287,46 +342,6 @@ function openTicket(record) {
   })
   $('#ticket-dialog-body').replaceChildren(editor)
   dialog.showModal()
-}
-
-function renderKitchen() {
-  const waiting = reservations.filter(r => r.kitchenStatus !== 'served' && r.status !== 'completed')
-  const totals = new Map()
-  for (const record of waiting.filter(r => ['queued', 'preparing'].includes(r.kitchenStatus))) {
-    for (const item of record.items) totals.set(item.name, (totals.get(item.name) || 0) + item.quantity)
-  }
-  const byTime = new Map()
-  for (const ticket of waiting.filter(r => ['queued', 'preparing'].includes(r.kitchenStatus))) {
-    const dishes = byTime.get(ticket.time) || new Map()
-    for (const item of ticket.items) dishes.set(item.name, (dishes.get(item.name) || 0) + item.quantity)
-    if (dishes.size) byTime.set(ticket.time, dishes)
-  }
-  const schedule = node('section', { className: 'prep-plan' }, node('h2', {}, 'Porcije po urah'),
-    ...[...byTime].map(([time, dishes]) => node('div', { className: 'prep-slot' },
-      node('time', {}, time), node('ul', {}, ...[...dishes].map(([name, quantity]) =>
-        node('li', {}, node('b', {}, quantity + ' × '), name))))))
-  const stats = node('div', { className: 'stats' },
-    stat(waiting[0]?.time ?? '—', 'Naslednja miza'), stat(waiting.reduce((n, r) => n + r.party, 0), 'Gosti v servisu'),
-    stat([...totals.values()].reduce((n, count) => n + count, 0), 'Porcije za pripravo'),
-    stat(waiting.filter(r => r.kitchenStatus === 'ready').length, 'Mize pripravljene'))
-  const content = node('div', { className: 'kitchen-board' }, ...reservations.map(record => {
-    const next = nextPrep[record.kitchenStatus]
-    return node('article', { className: 'kitchen-card', 'data-state': record.kitchenStatus },
-      node('div', { className: 'kitchen-top' }, node('time', { dateTime: record.time }, record.time),
-        node('div', {}, node('strong', {}, record.party + ' oseb' + (record.table ? ' · Miza ' + record.table : '')), node('div', { className: 'kitchen-ref' }, record.reference))),
-      node('div', {}, pill(record.kitchenStatus, prep)),
-      record.items.length ? node('ul', {}, ...record.items.map(item => node('li', {},
-        node('strong', {}, item.quantity + '×'), node('span', {}, item.name,
-          item.allergens ? node('span', { className: 'subtle' }, 'Alergeni: ' + item.allergens) : null)))) : para('Naročilo ob prihodu.'),
-      record.guestNote ? para('Opomba gosta · ' + record.guestNote, 'kitchen-note') : null,
-      record.staffNotes ? para(record.staffNotes, 'kitchen-note') : null,
-      next && record.status !== 'completed' ? btn(next[1], event =>
-        action(event, () => changeTicket(record.id, { kitchenStatus: next[0] }), 'Priprava je posodobljena.'),
-      record.kitchenStatus === 'queued' ? 'button secondary' : 'button primary') : null)
-  }))
-  panel.replaceChildren(stats, node('div', { className: 'board-tools' }, node('strong', {}, dateLabel(date)), para('Samodejno osveževanje')),
-    ...(byTime.size ? [schedule] : []),
-    reservations.length ? content : para('Za izbrani datum ni potrjenih rezervacij.', 'empty'))
 }
 
 async function upload(file) {
@@ -464,7 +479,7 @@ function menuEditor() {
       daily ? (publish ? 'Dnevni meni je objavljen.' : 'Osnutek je shranjen.') : 'Stalna ponudba je posodobljena.'))
   }
   const dates = daily ? edit.dailyDates.filter(day => day !== date).slice(-8).reverse() : []
-  form.append(controls, ...(dates.length ? [node('div', { className: 'kitchen-compact' }, ...dates.map(day =>
+  form.append(controls, ...(dates.length ? [node('details', { className: 'menu-history' }, node('summary', {}, 'Prejšnji meniji'), ...dates.map(day =>
     btn(dateLabel(day), () => go('daily', day), 'button secondary small')))] : []),
     ...items.map((item, index) => editDish(item, () => {
       items.splice(index, 1)
@@ -473,29 +488,41 @@ function menuEditor() {
     })),
     node('div', { className: 'editor-actions' }, add, daily ? btn(published ? 'Umik v osnutek' : 'Shrani osnutek', event => write(event)) : null,
       btn(daily ? (published ? 'Posodobi objavo' : 'Objavi meni') : 'Shrani spremembe', event => write(event, true), 'button primary')))
+  form.insertBefore(form.querySelector('.editor-actions'), controls.nextSibling)
   return form
 }
 
 function mediaEditor() {
   const gallery = edit.gallery
   const galleryForm = node('form', { onsubmit: event => event.preventDefault() })
-  galleryForm.append(node('div', { className: 'editor-top' }, node('h2', {}, 'Galerija'),
+  const grid = node('div', { className: 'photo-grid' })
+  galleryForm.append(node('div', { className: 'editor-top' }, node('div', {}, node('h2', {}, 'Galerija'), para('Fotografije in njihov vrstni red na spletni strani.')),
     uploadControl('+ Dodaj fotografijo', url => {
       if (gallery.length >= 40) return say(notice, 'Galerija lahko vsebuje največ 40 slik.', 'error')
       gallery.push({ src: url, alt: '' })
       renderContent()
-      $$('.photo-edit input', panel).at(-1)?.focus()
+      $$('.photo-edit input[type=text]', panel).at(-1)?.focus()
     })))
-  for (const [index, photo] of gallery.entries()) {
-    galleryForm.append(node('div', { className: 'photo-edit' }, node('img', { src: mediaPath(photo.src) ? photo.src : undefined, alt: '' }),
-      label('Opis fotografije', bind(photo, 'alt', { required: true, maxLength: 100 })),
-      node('div', {}, btn('↑', () => {
-        if (index < 1) return
-        gallery.splice(index - 1, 2, gallery[index], gallery[index - 1])
-        dirty = true
-        renderContent()
-      }, 'remove'), btn('Odstrani', () => { gallery.splice(index, 1); dirty = true; renderContent() }, 'remove'))))
+  function movePhoto(index, direction) {
+    const target = index + direction
+    const [photo] = gallery.splice(index, 1)
+    gallery.splice(target, 0, photo)
+    dirty = true
+    renderContent()
+    $$('.photo-edit input[type=text]', panel)[target]?.focus({ preventScroll: true })
   }
+  for (const [index, photo] of gallery.entries()) {
+    grid.append(node('article', { className: 'photo-edit' },
+      node('img', { src: mediaPath(photo.src) ? photo.src : undefined, alt: photo.alt || '', loading: 'lazy' }),
+      node('div', { className: 'photo-controls' },
+        label('Opis fotografije', bind(photo, 'alt', { type: 'text', required: true, maxLength: 100 })),
+        uploadControl('Zamenjaj fotografijo', url => { photo.src = url; renderContent() }),
+        node('div', { className: 'photo-actions' },
+          node('button', { type: 'button', disabled: index === 0, 'aria-label': 'Premakni fotografijo prej', onclick: () => movePhoto(index, -1) }, '←'),
+          node('button', { type: 'button', disabled: index === gallery.length - 1, 'aria-label': 'Premakni fotografijo pozneje', onclick: () => movePhoto(index, 1) }, '→'),
+          btn('Odstrani', () => { gallery.splice(index, 1); dirty = true; renderContent() }, 'remove')))))
+  }
+  galleryForm.append(grid)
   const settings = edit.settings
   const photos = [['hero', 'Uvodna fotografija'], ['storyPhoto', 'Fotografija pri zgodbi'], ['terracePhoto', 'Fotografija pri obisku']]
   galleryForm.append(node('fieldset', { className: 'settings-group' },
@@ -506,7 +533,8 @@ function mediaEditor() {
     const coverPhotos = Object.fromEntries(photos.map(([key]) => [key, settings[key]]))
     action(event, () => save({ section: 'media', gallery, photos: coverPhotos }, 'Fotografije so posodobljene.'))
   }, 'button primary')))
-  return node('div', { className: 'editor' }, galleryForm)
+  galleryForm.insertBefore(galleryForm.querySelector('.editor-actions'), grid)
+  return node('div', { className: 'editor media-editor' }, galleryForm)
 }
 
 function settingsEditor() {
@@ -534,7 +562,7 @@ function settingsEditor() {
     node('div', { className: 'fields' },
       checkbox('Sprejemam spletne rezervacije', settings.bookingOpen, value => { dirty = true; settings.bookingOpen = value }),
       checkbox('Samodejno potrdi, kadar je miza prosta', settings.autoConfirm, value => { dirty = true; settings.autoConfirm = value }),
-      para(edit.preview ? 'Predogled: e-pošta se ne pošilja.' : edit.emailConfigured ? 'Potrditvena e-pošta je nastavljena.' : 'Pred vklopom rezervacij nastavite potrditveno e-pošto.'),
+      para(edit.preview ? 'Predogled: e-pošta se ne pošilja.' : edit.emailConfigured ? 'Potrditvena e-pošta je nastavljena.' : 'Gost lahko odda zahtevo prek spleta. Za potrditev ga pokličite. Za samodejno potrjevanje nastavite e-poštnega pošiljatelja.'),
       node('div', { className: 'settings-grid' }, ...metrics.map(([key, title, min, max]) =>
         label(title, input(String(settings[key]), { type: 'number', min: String(min), max: String(max), required: true, oninput: event => {
           dirty = true
@@ -545,6 +573,12 @@ function settingsEditor() {
     const parsed = hours.map(value => value.split(',').map(s => s.trim()).filter(Boolean).map(pair => pair.split(/[–-]/).map(s => s.trim())))
     action(event, () => save({ section: 'settings', settings: { ...settings, hours: parsed } }, 'Nastavitve so shranjene.'))
   }, 'button primary')))
+  const bookingSettings = form.querySelectorAll('fieldset')[1]
+  form.prepend(bookingSettings)
+  const general = form.querySelector(':scope > .fields')
+  general.prepend(node('h2', {}, 'Podatki o bistroju'))
+  const saveButton = form.querySelector('.editor-actions')
+  form.prepend(saveButton)
   return form
 }
 
@@ -565,7 +599,8 @@ async function boot() {
     $('#owner-link').hidden = !kitchen || (!hostedReview && role !== 'owner')
     $('#kitchen-link').hidden = role !== 'owner' || kitchen
     $('#owner-nav').hidden = kitchen || role !== 'owner'
-    $('#signin-title').textContent = kitchen ? 'Kuhinja.' : 'Upravljanje.'
+    $('#signin-title').textContent = kitchen ? 'Kuhinjski servis' : 'Pult bistroja'
+    $('#signin-description').textContent = kitchen ? 'Prijavite se za pregled naročenih porcij in pripravo miz.' : 'Prijavite se za urejanje rezervacij, dnevne ponudbe in fotografij.'
     say($('#preview-login'), session.preview ? 'Lokalni predogled · geslo: kosta-' + roleNeeded + '-demo' : '')
     if (kitchen) {
       $('#preview-link').href = '/kitchen?demo=1'
@@ -575,8 +610,11 @@ async function boot() {
     document.body.classList.toggle('kitchen', kitchen)
     if (kitchen) $('#staff-eyebrow').textContent = 'KUHINJA · KÓŠTA'
     const initialView = new URL(location.href).searchParams.get('view')
-    go(!kitchen && Object.hasOwn(titles, initialView) ? initialView : 'reservations')
-    if (hostedReview) $('.staff-header .wordmark').href = '/?demo=1'
+    go(kitchen ? 'reservations' : Object.hasOwn(titles, initialView) ? initialView : 'overview')
+    if (hostedReview) {
+      $('.staff-header .wordmark').href = '/?demo=1'
+      $('#public-link').href = '/?demo=1'
+    }
   } catch (failure) {
     say($('#startup'), failure.message, 'error')
   }
@@ -610,6 +648,14 @@ $('#logout').addEventListener('click', async () => {
 for (const button of $$('[data-view]')) button.addEventListener('click', () => {
   if (view !== button.dataset.view) go(button.dataset.view)
 })
+$('#mobile-view').addEventListener('change', event => go(event.currentTarget.value))
+function adjacentDay(offset) {
+  const day = new Date(date + 'T12:00:00Z')
+  day.setUTCDate(day.getUTCDate() + offset)
+  go(view, day.toISOString().slice(0, 10))
+}
+$('#prev-day').addEventListener('click', () => adjacentDay(-1))
+$('#next-day').addEventListener('click', () => adjacentDay(1))
 dateInput.addEventListener('change', () => { if (dateInput.value) go(view, dateInput.value) })
 $('#today').addEventListener('click', () => go(view, dateToday()))
 window.addEventListener('beforeunload', event => {
@@ -622,6 +668,6 @@ function tick() {
 tick()
 setInterval(tick, 1000)
 setInterval(() => {
-  if (role && !$('#workspace').hidden && view === 'reservations' && !document.hidden && !dialog.open && !writes) load({ quiet: true })
+  if (role && !$('#workspace').hidden && ['overview', 'reservations'].includes(view) && !document.hidden && !dialog.open && !writes) load({ quiet: true })
 }, 10_000)
 boot()

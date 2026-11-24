@@ -14,6 +14,7 @@ let availabilityRequest
 let submissionKey
 let started = false
 let bookingDemo = false
+let selectionDate
 
 function menuRow(item) {
   const description = item.description && node('span', { className: 'subtle' }, item.description)
@@ -63,7 +64,8 @@ function applySite(next) {
     for (const [selector, key] of [['#hero-image', 'hero'], ['#story-image', 'storyPhoto'], ['#terrace-image', 'terracePhoto']]) {
       if (mediaPath(settings[key])) {
         $(selector).src = settings[key]
-        if (settings[key].startsWith('/api/media/')) $(selector).alt = 'Bistro Kóšta'
+        $(selector).alt = next.gallery.find(photo => photo.src === settings[key])?.alt ||
+          ({ hero: 'Bistro Kóšta', storyPhoto: 'Iz kuhinje bistroja Kóšta', terracePhoto: 'Terasa bistroja Kóšta' })[key]
       }
     }
     text('#strip-address', settings.address)
@@ -76,6 +78,13 @@ function applySite(next) {
     updateHours(settings.hours)
   }
   if (JSON.stringify(previous?.gallery) !== JSON.stringify(next.gallery)) {
+    const sidePhoto = next.gallery.find(photo => mediaPath(photo.src) && photo.src !== settings.hero)
+    $('.cover-small').hidden = !sidePhoto
+    if (sidePhoto) {
+      $('#cover-side-image').src = sidePhoto.src
+      $('#cover-side-image').alt = sidePhoto.alt
+      text('#side-caption', sidePhoto.alt)
+    }
     $('#galerija').hidden = !next.gallery.length
     $('#gallery-more').hidden = next.gallery.length <= 3
     $('#gallery').replaceChildren(...next.gallery.filter(photo => mediaPath(photo.src)).map(photo => node('figure', {},
@@ -84,6 +93,12 @@ function applySite(next) {
   }
   const phoneOnly = !hostedReview && !settings.bookingOpen
   $('#phone-booking').hidden = !phoneOnly
+  text('#booking-aside-note', phoneOnly
+    ? 'Za skupno kosilo ali večjo družbo se za termin dogovorimo po telefonu.'
+    : 'Izberite termin in število gostov. Če želite, lahko ob rezervaciji izberete tudi jedi.')
+  text('#confirm-method', hostedReview ? 'V preizkusu uporabite izmišljene kontakte.'
+    : next.confirmationChannel === 'phone' ? 'Termin vam bomo potrdili po telefonu.'
+    : 'Potrditev termina boste prejeli po e-pošti.')
   const weekday = new Date(next.today + 'T12:00:00Z').getUTCDay()
   text('#booking-hours', settings.hours[weekday].map(period => period.join('–')).join(' / ') || 'Zaprto')
   text('#strip-hours', $('#booking-hours').textContent)
@@ -171,19 +186,24 @@ async function availability({ keepTime = false, firstVisit = false } = {}) {
 function showStep(next) {
   step = next
   for (const panel of $$('[data-step]')) panel.hidden = Number(panel.dataset.step) !== next
-  text('#step-count', next + ' / 3')
-  text('#step-label', ['Termin', 'Jedi', 'Kontakt'][next - 1])
+  for (const [index, item] of $$('.booking-progress li').entries()) {
+    if (index + 1 === next) item.setAttribute('aria-current', 'step')
+    else item.removeAttribute('aria-current')
+    item.classList.toggle('complete', index + 1 < next)
+  }
   say(bookingError, '')
   const title = $(`[data-step="${next}"] h3`)
   title.tabIndex = -1
   title.focus({ preventScroll: true })
   const position = title.getBoundingClientRect()
-  if (position.top < 84 || position.bottom > innerHeight - 25) title.scrollIntoView({ block: 'center', behavior: 'instant' })
+  if (position.top < 84 || position.bottom > innerHeight - 25) title.scrollIntoView({ block: 'nearest', behavior: 'instant' })
 }
 
 function renderDishes() {
   const container = $('#booking-dishes')
   const party = Number(form.elements.party.value)
+  const previous = selectionDate === form.elements.date.value ? new Map(selections().map(item => [item.id, item.quantity])) : new Map()
+  selectionDate = form.elements.date.value
   const groups = [['daily', 'Dnevni meni'], ['regular', 'Stalna ponudba']]
   const content = []
   for (const [type, label] of groups) {
@@ -191,18 +211,37 @@ function renderDishes() {
     if (!list.length) continue
     content.push(node('p', { className: 'eyebrow booking-group' }, label))
     for (const item of list) {
-      const quantity = node('input', { type: 'number', min: '0', max: String(party * 3), value: '0', inputMode: 'numeric',
-        'data-dish': type + ':' + item.id, 'data-price': item.price, 'aria-label': 'Število porcij: ' + item.name })
-      content.push(node('label', { className: 'booking-dish' }, node('span', {},
-        node('strong', {}, item.name), node('span', { className: 'subtle' }, price(item.price) + (item.allergens ? ' · Alergeni: ' + item.allergens : ''))), quantity))
+      const id = type + ':' + item.id
+      const max = party * 3
+      const quantity = node('input', { type: 'number', min: '0', max: String(max),
+        value: String(Math.min(previous.get(id) || 0, max)), inputMode: 'numeric', oninput: updateOrderTotal,
+        'data-dish': id, 'data-price': item.price, 'data-name': item.name, 'aria-label': 'Število porcij: ' + item.name })
+      const adjust = delta => {
+        quantity.value = String(Math.min(max, Math.max(0, (Number(quantity.value) || 0) + delta)))
+        updateOrderTotal()
+      }
+      content.push(node('div', { className: 'booking-dish' }, node('span', {},
+        node('strong', {}, item.name), node('span', { className: 'subtle' }, price(item.price) + (item.allergens ? ' · Alergeni: ' + item.allergens : ''))),
+        node('div', { className: 'quantity' },
+          node('button', { type: 'button', 'aria-label': 'Odvzemi porcijo: ' + item.name, onclick: () => adjust(-1) }, '−'),
+          quantity,
+          node('button', { type: 'button', 'aria-label': 'Dodaj porcijo: ' + item.name, onclick: () => adjust(1) }, '+'))))
     }
   }
   container.replaceChildren(...(content.length ? content : [node('p', { className: 'empty' }, 'Jedi lahko naročite ob prihodu.')]))
+  updateOrderTotal()
 }
 
 function selections() {
   return $$('[data-dish]').map(input => ({ id: input.dataset.dish, quantity: Number(input.value), quotedPrice: Number(input.dataset.price) }))
     .filter(item => item.quantity > 0)
+}
+
+function updateOrderTotal() {
+  const selected = selections()
+  $('#order-total').hidden = !selected.length
+  const subtotal = selected.reduce((total, item) => total + item.quantity * item.quotedPrice, 0)
+  text('#order-total', 'Prednaročilo skupaj · ' + price(subtotal))
 }
 
 for (const button of $$('[data-menu]')) button.addEventListener('click', () => {
@@ -226,7 +265,14 @@ $('#to-contact').addEventListener('click', () => {
     say(bookingError, 'Izberete lahko največ tri jedi na gosta.')
     return
   }
-  text('#booking-summary', dateLabel(form.elements.date.value) + ' · ' + chosenTime + ' · ' + party + ' oseb' + (total ? ' · ' + total + ' porcij' : ''))
+  text('#booking-summary', dateLabel(form.elements.date.value) + ' · ' + chosenTime + ' · ' + party + ' ' + (party === 1 ? 'oseba' : party === 2 ? 'osebi' : party < 5 ? 'osebe' : 'oseb'))
+  const chosen = $$('[data-dish]').filter(input => Number(input.value) > 0)
+  $('#review-dishes').replaceChildren(...chosen.map(input => node('li', {},
+    node('span', {}, input.value + ' × ' + input.dataset.name),
+    node('span', {}, price(Number(input.value) * Number(input.dataset.price))))))
+  $('#review-dishes').hidden = !chosen.length
+  $('#review-total').hidden = !chosen.length
+  text('#review-total', $('#order-total').textContent)
   showStep(3)
 })
 
@@ -245,7 +291,7 @@ form.addEventListener('submit', async event => {
     form.hidden = true
     const receipt = $('#receipt')
     const pending = result.status === 'pending'
-    const message = pending ? 'Ko potrdimo termin, vam pošljemo e-pošto.'
+    const message = pending ? (result.confirmationChannel === 'phone' ? 'Za potrditev termina vas bomo poklicali.' : 'Ko potrdimo termin, vam pošljemo e-pošto.')
       : result.emailStatus === 'sent' ? 'Potrditev smo poslali na vaš e-poštni naslov.'
       : result.emailStatus === 'preview' ? 'Poskusna rezervacija je shranjena. Pošiljanje e-pošte je v predogledu izklopljeno.'
       : 'Vaša miza je potrjena. Shranite si številko rezervacije.'
@@ -258,6 +304,7 @@ form.addEventListener('submit', async event => {
       node('button', { className: 'plain', onclick: () => {
         receipt.hidden = true
         form.reset()
+        selectionDate = undefined
         showStep(1)
         started = false
         applySite(site)

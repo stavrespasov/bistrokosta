@@ -56,12 +56,16 @@ function selectedDate(url) {
   return date
 }
 
+function webConfirmationChannel() {
+  return preview || emailConfigured() ? 'email' : 'phone'
+}
+
 function publicSite(state) {
   const [today] = localClock()
   const { address, phone, delivery, terrace, intro, story, hours, hero, storyPhoto, terracePhoto, bookingOpen, maxParty, daysAhead } = state.settings
   const menu = catalogue(state, today)
   return {
-    today, lastDate: addDays(today, daysAhead), preview,
+    today, lastDate: addDays(today, daysAhead), preview, confirmationChannel: webConfirmationChannel(),
     settings: { address, phone, delivery, terrace, intro, story, hours, hero, storyPhoto, terracePhoto, bookingOpen, maxParty },
     menu, example: menu.daily.length || state.daily[today]?.published ? [] : exampleMenu,
     gallery: state.gallery
@@ -74,7 +78,7 @@ const activeCover = ['pending', 'confirmed', 'seated']
 
 const publicTicket = record => ({
   reference: record.reference, date: record.date, time: record.time, party: record.party, status: record.status,
-  items: record.items, emailStatus: record.emailStatus
+  items: record.items, emailStatus: record.emailStatus, confirmationChannel: record.confirmationChannel || (record.emailStatus === 'phone' ? 'phone' : 'email')
 })
 
 function bookableHours(settings, desk) {
@@ -97,17 +101,18 @@ async function reserve(store, req, desk = false) {
       throw new Problem(409, 'Ta termin ni več na voljo. Izberite drugo uro.')
     }
     const items = orderFor(state, date, input.items ?? [], party)
+    const confirmationChannel = !details.email ? 'phone' : webConfirmationChannel()
     const ticket = {
       id: randomUUID(), reference: randomBytes(5).toString('hex').toUpperCase(), key, ...details,
       date, time, party, duration: state.settings.duration, items,
-      source: desk ? 'desk' : 'web', status: desk || state.settings.autoConfirm ? 'confirmed' : 'pending',
-      kitchenStatus: 'queued', emailStatus: details.email ? 'waiting' : 'phone', confirmationVersion: 1,
+      source: desk ? 'desk' : 'web', status: desk || (state.settings.autoConfirm && confirmationChannel === 'email') ? 'confirmed' : 'pending',
+      kitchenStatus: 'queued', confirmationChannel, emailStatus: confirmationChannel === 'phone' ? 'phone' : 'waiting', confirmationVersion: 1,
       staffNotes: '', table: '', createdAt: new Date().toISOString()
     }
     state.reservations.push(ticket)
     return ticket
   })
-  if (record.email && record.status === 'confirmed') await confirmation(store, record.id)
+  if (record.email && record.confirmationChannel !== 'phone' && record.status === 'confirmed') await confirmation(store, record.id)
   const fresh = (await store.read()).reservations.find(r => r.id === record.id)
   return publicTicket(fresh ?? record)
 }
@@ -165,12 +170,12 @@ async function changeTicket(store, req, id, role) {
     const changed = shifted || old.email !== record.email || old.name !== record.name || old.items !== record.items
     if (record.status === 'confirmed' && (old.status !== record.status || changed)) {
       record.confirmationVersion++
-      record.emailStatus = record.email ? 'waiting' : 'phone'
+      record.emailStatus = record.email && record.confirmationChannel !== 'phone' ? 'waiting' : 'phone'
       delete record.emailLease
       delete record.emailLeaseUntil
-      return { send: Boolean(record.email) }
+      return { send: record.emailStatus !== 'phone' }
     }
-    return { send: input.retryEmail === true && Boolean(record.email) && record.status === 'confirmed' }
+    return { send: input.retryEmail === true && record.confirmationChannel !== 'phone' && Boolean(record.email) && record.status === 'confirmed' }
   })
   if (result.send) await confirmation(store, id)
   return { ok: true }
@@ -237,11 +242,18 @@ export default async function handler(req, res) {
       const date = selectedDate(url)
       const boardRole = url.searchParams.get('view') === 'kitchen' ? 'kitchen' : role
       const menu = state.daily[date]
+      const [today] = localClock()
+      const needsConfirmation = boardRole === 'owner' && url.searchParams.get('view') === 'overview'
+        ? state.reservations.filter(record => record.status === 'pending' && record.date >= today)
+          .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+        : []
       return json(res, 200, {
-        reservations: board(state, date, boardRole), today: localClock()[0],
+        reservations: board(state, date, boardRole), today,
         ...(boardRole === 'owner' ? { service: {
           published: Boolean(menu?.published), dishes: menu?.items.filter(item => item.active).length || 0,
-          bookingOpen: state.settings.bookingOpen, maxParty: state.settings.maxParty
+          bookingOpen: state.settings.bookingOpen, maxParty: state.settings.maxParty,
+          pendingCount: needsConfirmation.length,
+          pending: needsConfirmation.slice(0, 5).map(({ name, date, time, reference, party }) => ({ name, date, time, reference, party }))
         } } : {})
       })
     }
@@ -272,7 +284,7 @@ export default async function handler(req, res) {
       await store.change(state => {
         if (input.section === 'settings') {
           const settings = settingsFrom(input.settings)
-          if (settings.bookingOpen && !preview && !emailConfigured()) throw new Problem(409, 'Pred vklopom rezervacij nastavite pošiljanje potrditvenih e-poštnih sporočil.')
+          if (settings.bookingOpen && settings.autoConfirm && !preview && !emailConfigured()) throw new Problem(409, 'Za samodejne potrditve nastavite pošiljanje e-pošte. Za telefonske potrditve izklopite samodejno potrditev.')
           state.settings = settings
         } else if (input.section === 'regular') {
           state.regular = menuItems(input.items)

@@ -66,6 +66,10 @@ test('a published menu travels from the owner to a guest booking and the kitchen
     const winner = competing[winnerIndex]
     assert.equal((await post(inputs[winnerIndex])).data.reference, winner.data.reference)
     assert.equal(winner.data.status, 'pending')
+    const overview = await call('board?date=' + today + '&view=overview', { cookie: owner.cookie })
+    assert.equal(overview.data.service.pendingCount, 1)
+    assert.equal(overview.data.service.pending[0].reference, winner.data.reference)
+    assert.equal((await call('board?view=overview', { cookie: kitchen.cookie })).data.service, undefined)
     const readBoard = session => call('board?date=' + date, { cookie: session.cookie })
     assert.deepEqual((await readBoard(kitchen)).data.reservations, [])
     const { id } = (await readBoard(owner)).data.reservations[0]
