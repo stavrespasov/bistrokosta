@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { addDays, catalogue, localClock, orderFor, Problem, seatsAvailable, serviceSlots, validDate, validTime } from '../lib/bookings.js'
 import { authenticate, rateLimit, requireRole, staffCookie, staffRole } from '../lib/auth.js'
 import { confirmation, emailConfigured } from '../lib/email.js'
+import { daySummary, periodSummary } from '../lib/manager.js'
 import { currentPhotos } from '../lib/photos.js'
 import { exampleMenu, initialState } from '../lib/seed.js'
 import { displayOnly, getStore, preview } from '../lib/store.js'
@@ -236,6 +237,15 @@ export default async function handler(req, res) {
       return json(res, 201, await reserve(store, req, true))
     }
     if (path === 'reservations' && method === 'POST') return json(res, 201, await reserve(store, req))
+    if (path === 'dashboard' && method === 'GET') {
+      requireRole(req, 'owner')
+      const date = selectedDate(url)
+      const mode = url.searchParams.get('view')
+      const count = Number(url.searchParams.get('days') || 7)
+      if (!['planner', 'reports'].includes(mode) || ![7, 14, 30].includes(count)) throw new Problem(400, 'Izberite veljavno obdobje.')
+      const state = await store.read()
+      return json(res, 200, { today: localClock()[0], seats: state.settings.seats, days: periodSummary(state, date, count, mode === 'reports') })
+    }
     if (path === 'board' && method === 'GET') {
       const role = requireRole(req, 'owner', 'kitchen')
       const state = await store.read()
@@ -243,17 +253,21 @@ export default async function handler(req, res) {
       const boardRole = url.searchParams.get('view') === 'kitchen' ? 'kitchen' : role
       const menu = state.daily[date]
       const [today] = localClock()
-      const needsConfirmation = boardRole === 'owner' && url.searchParams.get('view') === 'overview'
+      const overview = boardRole === 'owner' && url.searchParams.get('view') === 'overview'
+      const needsConfirmation = overview
         ? state.reservations.filter(record => record.status === 'pending' && record.date >= today)
           .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
         : []
+      const reservations = board(state, date, boardRole)
       return json(res, 200, {
-        reservations: board(state, date, boardRole), today,
+        reservations, today,
         ...(boardRole === 'owner' ? { service: {
           published: Boolean(menu?.published), dishes: menu?.items.filter(item => item.active).length || 0,
           bookingOpen: state.settings.bookingOpen, maxParty: state.settings.maxParty,
           pendingCount: needsConfirmation.length,
-          pending: needsConfirmation.slice(0, 5).map(({ name, date, time, reference, party }) => ({ name, date, time, reference, party }))
+          pending: needsConfirmation.slice(0, 6).map(({ name, date, time, reference, party }) => ({ name, date, time, reference, party })),
+          ...(overview ? { day: daySummary(state, date, reservations, true), seats: state.settings.seats,
+            confirmationChannel: webConfirmationChannel() } : {})
         } } : {})
       })
     }

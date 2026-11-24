@@ -33,11 +33,14 @@ test('a published menu travels from the owner to a guest booking and the kitchen
     }
 
     assert.equal((await call('content')).status, 401)
+    assert.equal((await call('dashboard?view=planner')).status, 401)
     const owner = await call('session', { method: 'POST', body: { role: 'owner', password: 'kosta-owner-demo' } })
     const kitchen = await call('session', { method: 'POST', body: { role: 'kitchen', password: 'kosta-kitchen-demo' } })
     assert.equal(owner.status, 200)
     assert.equal(kitchen.status, 200)
     assert.equal((await call('content', { cookie: kitchen.cookie })).status, 403)
+    assert.equal((await call('dashboard?view=planner', { cookie: kitchen.cookie })).status, 403)
+    assert.equal((await call('dashboard?view=planner&days=999', { cookie: owner.cookie })).status, 400)
 
     const initial = (await call('content?date=' + date, { cookie: owner.cookie })).data
     const put = body => call('content', { method: 'PUT', cookie: owner.cookie, body })
@@ -69,6 +72,11 @@ test('a published menu travels from the owner to a guest booking and the kitchen
     const overview = await call('board?date=' + today + '&view=overview', { cookie: owner.cookie })
     assert.equal(overview.data.service.pendingCount, 1)
     assert.equal(overview.data.service.pending[0].reference, winner.data.reference)
+    const planned = (await call('dashboard?view=planner&date=' + date, { cookie: owner.cookie })).data.days[0]
+    assert.equal(planned.visits.pending, 4)
+    assert.equal(planned.peak.covers, 4)
+    assert.equal(planned.portions, 0)
+    assert.ok(!JSON.stringify(planned).includes(input.email))
     assert.equal((await call('board?view=overview', { cookie: kitchen.cookie })).data.service, undefined)
     const readBoard = session => call('board?date=' + date, { cookie: session.cookie })
     assert.deepEqual((await readBoard(kitchen)).data.reservations, [])
@@ -92,6 +100,14 @@ test('a published menu travels from the owner to a guest booking and the kitchen
     const [updated] = (await readBoard(owner)).data.reservations
     assert.equal(updated.kitchenStatus, 'ready')
     assert.equal(updated.status, 'confirmed')
+    const summary = (await call('dashboard?view=reports&date=' + date + '&days=14', { cookie: owner.cookie })).data.days
+    assert.equal(summary.length, 14)
+    assert.equal(summary.at(-1).visits.confirmed, 4)
+    assert.equal(summary.at(-1).channels.web, 1)
+    assert.equal(summary.at(-1).preorderCents, 3300)
+    const kitchenSummary = (await call('board?date=' + date + '&view=overview', { cookie: owner.cookie })).data.service.day
+    assert.equal(kitchenSummary.prep.ready, 5)
+    assert.deepEqual(kitchenSummary.prepItems, [])
     assert.equal((await put({ section: 'daily', date, published: false, items: [] })).status, 200)
     assert.equal((await readBoard(kitchen)).data.reservations[0].items[0].name, 'Juha za test')
 

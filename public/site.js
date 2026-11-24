@@ -53,14 +53,11 @@ function applySite(next) {
   }
   const terracePath = hostedReview && next.settings.terracePhoto === originalTerrace.src
     ? terraceVisualization.src : next.settings.terracePhoto
-  const showVisualization = terracePath === terraceVisualization.src
-  $('#obisk').classList.toggle('visit-wide', showVisualization)
-  $('#terrace-caption').hidden = !showVisualization
-  if (showVisualization) text('#terrace-caption', terraceVisualization.title)
+  $('#obisk').classList.toggle('visit-wide', terracePath === terraceVisualization.src)
   for (const [selector, path, sizes] of [
     ['#hero-image', next.settings.hero, '(max-width: 700px) 100vw, 53vw'],
     ['#story-image', next.settings.storyPhoto, '(max-width: 700px) 100vw, 52vw'],
-    ['#terrace-image', terracePath, '(max-width: 700px) 94vw, min(94vw, 142svh, 1480px)']
+    ['#terrace-image', terracePath, '100vw']
   ]) {
     const image = $(selector)
     if (!mediaPath(path) || image.getAttribute('src') === path) continue

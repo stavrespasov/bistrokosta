@@ -1,0 +1,179 @@
+.manager-dashboard {
+  --manager-dark: #173b37;
+  --manager-soft: #e4ece1;
+  --manager-green: #315b50;
+  --manager-amber: #f4e0c6;
+  display:grid;
+  gap:clamp(12px,1.65vw,24px);
+}
+.team:not(.kitchen) .work-rail {background:#e9ece2}
+.team:not(.kitchen) .staff-nav button[aria-current=page] {background:#173b37}
+.manager-service {
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:18px 32px;
+  padding:clamp(20px,3vw,43px);
+  background:var(--manager-dark);
+  color:var(--on-deep);
+  border-radius:12px;
+}
+.manager-service .eyebrow,.manager-service .subtle {color:#d4e6d7}
+.manager-service h2 {margin:5px 0 9px;font-size:clamp(2.25rem,4.5vw,4.65rem);line-height:1.06}
+.manager-service-next {display:grid;align-content:end;justify-items:start;gap:5px}
+.manager-service-next span {font-size:.85rem;color:#d4e6d7}
+.manager-service-next strong {font-size:1.22rem;line-height:1.3}
+.team .manager-service .primary {background:var(--apricot);color:var(--ink);margin-top:7px}
+.team .manager-service .primary:hover {background:var(--apricot-hover)}
+.manager-metrics {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,172px),1fr));
+  gap:10px;
+}
+.manager-metric,.manager-card {
+  min-width:0;
+  border:1px solid var(--desk-rule);
+  border-radius:12px;
+  background:var(--desk-card);
+  padding:clamp(15px,2vw,29px);
+}
+.manager-metric {display:flex;flex-direction:column;justify-content:space-between;gap:5px}
+.manager-metric:first-child {background:var(--manager-soft)}
+.manager-metric dt {font-weight:660;font-size:.85rem;line-height:1.3}
+.manager-metric dd strong {
+  display:block;
+  font:400 clamp(1.9rem,3.45vw,3.55rem)/1.13 var(--display);
+  letter-spacing:-.055em;
+  color:var(--manager-dark);
+  overflow-wrap:anywhere;
+}
+.manager-metric dd span {display:block;margin-top:5px;color:var(--muted);font-size:.79rem;line-height:1.35}
+.manager-grid,.manager-report-grid {
+  display:grid;
+  grid-template-columns:minmax(0,1.45fr) minmax(265px,1fr);
+  align-items:start;
+  gap:clamp(12px,1.65vw,24px);
+}
+.manager-grid {grid-template-areas:"arrivals attention" "kitchen attention"}
+.manager-attention {grid-area:attention}
+.manager-arrivals {grid-area:arrivals}
+.manager-kitchen {grid-area:kitchen}
+.manager-card-heading {display:flex;align-items:start;justify-content:space-between;flex-wrap:wrap;gap:6px 15px;margin-bottom:15px}
+.manager-card-heading h2 {font-size:clamp(1.65rem,2.3vw,2.4rem)}
+.manager-card-heading .subtle {margin-top:5px}
+.manager-card-heading .button {align-self:center}
+.manager-chip {
+  display:inline-flex;
+  align-items:center;
+  width:fit-content;
+  border-radius:4px;
+  padding:4px 8px;
+  background:#e8e9e1;
+  color:#364f4b;
+  font-size:.77rem;
+  font-weight:650;
+  line-height:1.3;
+}
+.manager-chip[data-tone=good] {background:#dceadf;color:#224d40}
+.manager-chip[data-tone=wait] {background:var(--manager-amber);color:#623f24}
+.manager-attention .manager-card-heading>.manager-chip {padding:6px 10px;font-size:.88rem}
+.manager-queue,.manager-dish-list,.manager-plan-list,.manager-series {list-style:none;padding:0;margin:0}
+.manager-queue li {border-top:1px solid var(--desk-rule)}
+.manager-queue-link {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  column-gap:10px;
+  border:0;
+  background:transparent;
+  color:var(--ink);
+  text-align:left;
+  padding:9px 0;
+  min-height:49px;
+  width:100%;
+  overflow-wrap:anywhere;
+}
+.manager-queue-link::after {content:"→";padding-right:4px}
+.manager-queue-link:hover {color:var(--manager-green);text-decoration:underline;text-underline-offset:3px}
+.manager-queue-link strong,.manager-queue-link small {display:block}
+.manager-queue-link small {color:var(--muted);font-size:.78rem}
+.manager-checklist {margin-top:15px}
+.manager-checklist>div {display:grid;gap:4px;border-top:1px solid var(--desk-rule);padding-top:13px;margin-top:13px}
+.manager-checklist .plain,.manager-plan-list .plain {justify-self:start;text-align:left}
+.manager-card .tickets {margin-top:8px}
+.manager-prep {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:16px 0}
+.manager-prep>div {border-radius:6px;background:var(--manager-soft);padding:10px;min-width:0}
+.manager-prep dt {font-size:.76rem;overflow-wrap:anywhere}
+.manager-prep dd {font-size:1.36rem;font-weight:660;line-height:1.35}
+.manager-dish-list {display:grid;gap:0}
+.manager-dish-list li {display:grid;grid-template-columns:minmax(35px,auto) minmax(0,1fr);gap:8px;padding:7px 0;border-top:1px solid var(--desk-rule);overflow-wrap:anywhere}
+.manager-dish-list strong {color:var(--manager-green)}
+.manager-period {display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.manager-period h2 {margin-bottom:3px}
+.manager-period-actions,.manager-period-arrows {display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.team .manager-period-actions select {width:auto;min-height:44px}
+.manager-plan-list>li {
+  display:grid;
+  grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.9fr);
+  align-items:center;
+  gap:8px 22px;
+  padding:12px 10px;
+  border-top:1px solid var(--desk-rule);
+}
+.manager-plan-list>li[data-today=true] {background:#e9f0e7}
+.manager-plan-date time {font-weight:680}
+.manager-plan-covers,.manager-plan-actions {display:grid;justify-items:start}
+.manager-plan-list .plain {min-height:32px;font-size:.81rem}
+.manager-plan-load {display:grid;gap:3px}
+.manager-dashboard progress {
+  display:block;
+  width:100%;
+  height:8px;
+  border:0;
+  border-radius:8px;
+  overflow:hidden;
+  background:#e8ebe2;
+  color:#6a8276;
+}
+.manager-dashboard progress::-webkit-progress-bar {background:#e8ebe2}
+.manager-dashboard progress::-webkit-progress-value {background:currentColor}
+.manager-dashboard progress::-moz-progress-bar {background:currentColor}
+.manager-dashboard progress[data-tone=good] {color:#2f6e57}
+.manager-dashboard progress[data-tone=wait] {color:#98653b}
+.manager-key {display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.manager-series>li {
+  display:grid;
+  grid-template-columns:minmax(59px,.44fr) minmax(0,1fr) minmax(44px,auto);
+  gap:8px;align-items:center;border-top:1px solid var(--desk-rule);
+}
+.manager-series .plain {text-align:left;min-height:36px;font-size:.79rem}
+.manager-series-bars {display:grid;gap:4px}
+.manager-series-count {font-size:.78rem;font-weight:650;text-align:right;font-variant-numeric:tabular-nums}
+.manager-sources {margin-bottom:12px}
+.manager-sources>div {display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-top:1px solid var(--desk-rule)}
+.manager-sources dd {font-weight:650}
+.team .manager-card .board-filters {grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr)}
+.team .board-results {margin:11px 0 0}
+@media (max-width:1080px) {
+  .manager-grid {grid-template-columns:minmax(0,1fr) minmax(215px,.72fr)}
+  .manager-plan-list>li {column-gap:12px}
+}
+@media (max-width:900px) {
+  .manager-grid,.manager-report-grid {grid-template-columns:minmax(0,1fr)}
+  .manager-grid {grid-template-areas:"attention" "arrivals" "kitchen"}
+  .manager-checklist {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px}
+}
+@media (max-width:600px) {
+  .manager-metrics {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .manager-service {align-items:start}
+  .manager-service-next {justify-items:start}
+  .manager-plan-list>li {grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;padding-inline:5px}
+  .manager-plan-load {align-self:center}
+  .manager-report-grid .manager-card {padding-inline:12px}
+  .team .manager-card .board-filters {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .team .manager-card .board-filters label:first-child {grid-column:1/-1}
+  .manager-prep {grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+.menu-copy {display:flex;align-items:end;gap:7px 10px;flex-wrap:wrap}
+.menu-copy label {flex:1 1 180px}

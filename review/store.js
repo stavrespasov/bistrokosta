@@ -1,5 +1,5 @@
 import { initialState, exampleMenu } from '../lib/seed.js'
-import { addDays, localClock } from '../lib/bookings.js'
+import { addDays, localClock, serviceSlots } from '../lib/bookings.js'
 
 export const preview = true
 export const displayOnly = false
@@ -18,6 +18,25 @@ function sampleService() {
     items: [{ id: 'regular:gnudi', name: 'Gnudi z jurčki', quantity: 4, price: 1140, allergens: '' }],
     emailStatus: 'preview', confirmationVersion: 1, notes: '', staffNotes: '', createdAt: new Date().toISOString()
   })
+  const examples = [
+    [-6, 'DEMO-06', 'completed', 3, 'web'], [-4, 'DEMO-07', 'completed', 8, 'desk'],
+    [-2, 'DEMO-08', 'completed', 5, 'web'], [-2, 'DEMO-09', 'no-show', 2, 'web'],
+    [-1, 'DEMO-10', 'completed', 6, 'desk'], [0, 'DEMO-11', 'seated', 2, 'desk'],
+    [0, 'DEMO-12', 'pending', 4, 'web'], [1, 'DEMO-13', 'confirmed', 5, 'web'],
+    [2, 'DEMO-14', 'pending', 6, 'web'], [4, 'DEMO-15', 'confirmed', 4, 'desk']
+  ]
+  for (const [offset, reference, status, party, source] of examples) {
+    const date = addDays(today, offset)
+    const slots = serviceSlots({ ...state.settings, leadMinutes: 0 }, date, new Date(date + 'T00:00:00Z'))
+    const time = slots.find(slot => slot >= '12:00') ?? slots[0]
+    const items = status === 'pending' ? [] : [{ id: 'regular:gnudi', name: 'Gnudi z jurčki', quantity: party, price: 1140, allergens: '' }]
+    state.reservations.push({
+      id: crypto.randomUUID(), reference, date, time, party, source, status, duration: 90,
+      name: 'Vzorčna miza ' + reference.slice(-2), phone: '000000000', email: source === 'web' ? 'demo@example.com' : '',
+      table: '', kitchenStatus: status === 'seated' ? 'preparing' : status === 'completed' ? 'served' : 'queued',
+      items, emailStatus: source === 'desk' ? 'phone' : 'preview', confirmationVersion: 1, notes: '', staffNotes: '', createdAt: new Date().toISOString()
+    })
+  }
   return state
 }
 

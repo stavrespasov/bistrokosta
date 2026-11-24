@@ -1,4 +1,5 @@
 import { renderKitchen } from './kitchen.js'
+import { planner, reports, serviceOverview } from './manager.js'
 import { $, $$, api, dateLabel, dateToday, mediaPath, node, price, say, hostedReview } from './ui.js'
 
 const kitchen = location.pathname === '/kitchen'
@@ -15,10 +16,17 @@ const statusNames = {
 }
 const prep = { queued: 'Za pripravo', preparing: 'V pripravi', ready: 'Pripravljeno', served: 'Postreženo' }
 const emailNames = { phone: 'Dogovor po telefonu', waiting: 'Čaka', sending: 'Pošiljanje', sent: 'Poslano', failed: 'Pošiljanje ni uspelo', unconfigured: 'Ni nastavljeno', preview: 'Predogled' }
-const titles = { overview: 'Dnevni pregled', reservations: 'Rezervacije', daily: 'Dnevni meni', regular: 'Stalna ponudba', media: 'Fotografije', settings: 'Nastavitve' }
+const titles = { overview: 'Dnevni pregled', reservations: 'Rezervacije', planner: 'Planer', reports: 'Poročila', daily: 'Dnevni meni', regular: 'Stalna ponudba', media: 'Fotografije', settings: 'Nastavitve' }
 let view = 'reservations'
+const dateViews = new Set(['overview', 'reservations', 'planner', 'reports', 'daily'])
+const isPeriodView = () => view === 'planner' || view === 'reports'
 let statusFilter = 'all'
+let sourceFilter = 'all'
 let searchTerm = ''
+let range = Number(new URLSearchParams(location.search).get('days'))
+if (![7, 14, 30].includes(range)) range = 7
+let snapshot
+let lastOverviewMinute
 let reservations = []
 let service
 let request
@@ -38,14 +46,12 @@ const checkbox = (title, checked, change) => node('label', { className: 'check' 
   type: 'checkbox', checked, onchange: event => change(event.currentTarget.checked)
 }), node('span', {}, title))
 const select = (selected, values, change, description) => {
-  const element = node('select', { onchange: event => change?.(event.currentTarget.value), 'aria-label': description },
+  const element = node('select', { onchange: event => change?.(event.currentTarget.value), ...(description ? { 'aria-label': description } : {}) },
     ...Object.entries(values).map(([value, name]) => node('option', { value }, name)))
   element.value = selected
   return element
 }
 const pill = (state, names) => node('span', { className: 'pill', 'data-state': state }, names[state])
-const stat = (value, title) => node('div', { className: 'stat' }, node('strong', {}, String(value)), node('span', {}, title))
-const active = record => ['pending', 'confirmed', 'seated'].includes(record.status)
 
 function error(error) {
   if (error.status === 401) {
@@ -71,7 +77,7 @@ async function action(event, operation, done) {
   }
 }
 
-function go(next, nextDate = date, reference = '') {
+function go(next, nextDate = date, reference = '', status = 'all') {
   if (dirty && !confirm('Neshranjene spremembe bodo izgubljene. Želite nadaljevati?')) {
     dateInput.value = date
     return
@@ -79,21 +85,29 @@ function go(next, nextDate = date, reference = '') {
   dirty = false
   edit = null
   searchTerm = reference
-  statusFilter = 'all'
+  statusFilter = status
+  sourceFilter = 'all'
   view = next
   date = nextDate
   dateInput.value = date
   const route = new URL(location.href)
   route.searchParams.set('date', date)
   if (!kitchen) route.searchParams.set('view', view)
+  if (isPeriodView()) route.searchParams.set('days', range)
+  else route.searchParams.delete('days')
   history.replaceState(null, '', route)
   $('#kitchen-link').href = '/kitchen?' + (hostedReview ? 'demo=1&' : '') + 'date=' + date
   $('#owner-link').href = '/admin?' + (hostedReview ? 'demo=1&' : '') + 'date=' + date
   say(notice, '')
-  for (const button of $$('[data-view]')) button.setAttribute('aria-pressed', button.dataset.view === view)
+  for (const button of $$('[data-view]')) {
+    const selected = button.dataset.view === view
+    button.setAttribute('aria-pressed', selected)
+    if (selected) button.setAttribute('aria-current', 'page')
+    else button.removeAttribute('aria-current')
+  }
   document.title = (kitchen ? 'Kuhinja' : titles[view]) + ' · Bistro Kóšta'
   $('#staff-title').textContent = kitchen ? 'Kuhinjski servis' : titles[view]
-  $('#date-control').hidden = !['overview', 'reservations', 'daily'].includes(view)
+  $('#date-control').hidden = !dateViews.has(view)
   $('#today').hidden = $('#date-control').hidden
   panel.replaceChildren(para('Nalagamo …', 'empty'))
   load()
@@ -105,19 +119,36 @@ async function load({ quiet = false } = {}) {
   request = controller
   const isBoard = ['overview', 'reservations'].includes(view)
   try {
-    const result = await api((isBoard ? 'board' : 'content') + '?' + new URLSearchParams({ date, view: kitchen ? 'kitchen' : view }), { signal: controller.signal })
+    const endpoint = isPeriodView() ? 'dashboard' : isBoard ? 'board' : 'content'
+    const query = new URLSearchParams({ date, view: kitchen ? 'kitchen' : view })
+    if (isPeriodView()) query.set('days', range)
+    const result = await api(endpoint + '?' + query, { signal: controller.signal })
     if (controller.signal.aborted) return
+    if (quiet && (dialog.open || (!kitchen && panel.contains(document.activeElement)))) return
+    if (isPeriodView()) {
+      if (quiet && JSON.stringify(result) === JSON.stringify(snapshot)) return
+      snapshot = result
+      renderPeriod()
+      return
+    }
     if (!isBoard) {
       edit = result
       renderContent()
       return
     }
-    if (quiet && (document.activeElement?.matches('.board-filters input, .board-filters select') || dialog.open)) return
-    if (quiet && JSON.stringify(result.reservations) === JSON.stringify(reservations) && JSON.stringify(result.service) === JSON.stringify(service)) return
+    const minute = clock.format(new Date())
+    if (quiet && (view !== 'overview' || minute === lastOverviewMinute) &&
+      JSON.stringify(result.reservations) === JSON.stringify(reservations) && JSON.stringify(result.service) === JSON.stringify(service)) return
     service = result.service
     reservations = result.reservations
     if (kitchen) renderKitchen({ panel, reservations, date, changeTicket, action })
-    else renderBoard()
+    else if (view === 'overview') {
+      lastOverviewMinute = minute
+      panel.replaceChildren(serviceOverview({
+        date, today: result.today, time: minute, service, reservations, row: reservationRow,
+        navigate: go, create: openDeskBooking, kitchenHref: $('#kitchen-link').href
+      }))
+    } else renderBoard()
   } catch (failure) {
     if (controller.signal.aborted) return
     error(failure)
@@ -144,50 +175,47 @@ function reservationRow(record) {
       next ? btn(next[0], event => action(event, () => changeTicket(record.id, { status: next[1] }), 'Status je posodobljen.'), 'button secondary small') : null))
 }
 
+function renderPeriod() {
+  const render = view === 'planner' ? planner : reports
+  panel.replaceChildren(render({
+    snapshot, navigate: go, changeDate: day => go(view, day), changeRange: days => {
+      range = days
+      go(view)
+    }
+  }))
+}
+
 function renderBoard() {
-  const activeRecords = reservations.filter(active)
-  const pending = activeRecords.filter(r => r.status === 'pending').length
-  const portions = reservations.filter(r => ['confirmed', 'seated'].includes(r.status)).flatMap(r => r.items)
-    .reduce((total, item) => total + item.quantity, 0)
-  const stats = node('div', { className: 'stats' },
-    stat(activeRecords.reduce((n, r) => n + r.party, 0), 'Gostje v servisu'),
-    stat(activeRecords.length, 'Rezervirane mize'), stat(pending, 'Čakajo na potrditev'), stat(portions, 'Naročene porcije'))
-  const isOverview = view === 'overview'
   const list = node('div', { className: 'tickets' })
+  const results = node('p', { className: 'subtle board-results', 'aria-live': 'polite' })
   function updateList() {
     const query = searchTerm.trim().toLocaleLowerCase('sl')
-    const records = isOverview ? activeRecords : reservations.filter(record =>
-      (statusFilter === 'all' || record.status === statusFilter) && (!query ||
-      [record.name, record.reference, record.table, record.phone].some(value => String(value || '').toLocaleLowerCase('sl').includes(query))))
+    const digits = query.replace(/\D/g, '')
+    const records = reservations.filter(record => {
+      const source = record.source === 'web' || record.source === 'desk' ? record.source : 'unknown'
+      return (statusFilter === 'all' || record.status === statusFilter) && (sourceFilter === 'all' || source === sourceFilter) &&
+        (!query || [record.name, record.reference, record.table, record.phone, record.email]
+          .some(value => String(value || '').toLocaleLowerCase('sl').includes(query)) ||
+          (/^[+()0-9\s-]+$/.test(query) && digits.length >= 3 && (record.phone || '').replace(/\D/g, '').includes(digits)))
+    })
+    results.textContent = 'Prikazano ' + records.length + ' od ' + reservations.length + ' rezervacij'
     list.replaceChildren(...(records.length ? records.map(reservationRow) : [
       node('div', { className: 'empty-board' },
-        node('h3', {}, reservations.length && !isOverview ? 'Ni zadetkov' : 'Ni napovedanih miz'),
-        para(reservations.length && !isOverview ? 'Spremenite iskalni niz ali status.' : 'Telefonsko rezervacijo lahko vpišete za izbrani dan.'))
+        node('h3', {}, reservations.length ? 'Ni zadetkov' : 'Ni napovedanih miz'),
+        para(reservations.length ? 'Spremenite iskalni niz ali filtre.' : 'Telefonsko rezervacijo lahko vpišete za izbrani dan.'))
     ]))
   }
-  const create = btn('+ Vpiši rezervacijo', openDeskBooking, 'button primary small')
   const listHead = node('div', { className: 'board-tools' }, node('div', {},
-    node('h2', {}, isOverview ? 'Prihodi' : 'Seznam miz'), para(dateLabel(date))), create)
+    node('h2', {}, 'Seznam miz'), para(dateLabel(date))),
+    btn('+ Vpiši rezervacijo', openDeskBooking, 'button primary small'))
   const filters = node('div', { className: 'board-filters' },
-    input(searchTerm, { type: 'search', placeholder: 'Ime, telefon, miza ali številka', 'aria-label': 'Poišči rezervacijo',
-      oninput: event => { searchTerm = event.currentTarget.value; updateList() } }),
-    select(statusFilter, { all: 'Vsi statusi', ...statusNames }, value => { statusFilter = value; updateList() }, 'Filtriraj status'))
+    label('Iskanje', input(searchTerm, { type: 'search', 'aria-label': 'Poišči rezervacijo', placeholder: 'Ime, stik, miza ali številka',
+      oninput: event => { searchTerm = event.currentTarget.value; updateList() } })),
+    label('Status', select(statusFilter, { all: 'Vsi statusi', ...statusNames }, value => { statusFilter = value; updateList() }, 'Filtriraj status')),
+    label('Vir', select(sourceFilter, { all: 'Vsi viri', web: 'Prek spleta', desk: 'Ročni vpis', unknown: 'Ni zabeležen' },
+      value => { sourceFilter = value; updateList() }, 'Filtriraj vir')))
   updateList()
-  const reservationList = node('section', { className: 'service-list' }, listHead, isOverview ? null : filters, list,
-    isOverview ? btn('Vse rezervacije →', () => go('reservations'), 'plain list-link') : null)
-  if (!isOverview) return panel.replaceChildren(reservationList)
-  const menu = node('div', { className: 'menu-status' }, node('span', { className: 'service-label' }, 'Izbrani dan'),
-    node('h2', {}, 'Dnevni meni'), para(service.published ? 'Objavljeno · ' + service.dishes + ' jedi' : service.dishes ? 'Osnutek · ' + service.dishes + ' jedi' : 'Za ta dan še ni objavljen.'),
-    btn('Uredi meni →', () => go('daily'), 'button secondary small'))
-  const channels = node('div', { className: 'channel-status' }, node('h3', {}, 'Sprejem rezervacij'),
-    para(service.bookingOpen ? 'Spletne rezervacije so odprte.' : 'Rezervacije sprejemate po telefonu.'),
-    btn('Nastavitve rezervacij →', () => go('settings'), 'plain'))
-  const queue = service.pendingCount ? node('div', { className: 'channel-status pending-queue' },
-    node('h3', {}, 'Čakajo na potrditev (' + service.pendingCount + ')'),
-    ...service.pending.map(record => btn(record.name + ' · ' + dateLabel(record.date) + ' ob ' + record.time,
-      () => go('reservations', record.date, record.reference), 'plain queue-entry'))) : null
-  const actions = node('aside', { className: 'service-aside' }, queue, menu, channels)
-  panel.replaceChildren(stats, node('div', { className: 'overview-grid' }, reservationList, actions))
+  panel.replaceChildren(node('section', { className: 'service-list manager-card' }, listHead, filters, results, list))
 }
 
 function openDeskBooking() {
@@ -460,24 +488,28 @@ function menuEditor() {
     dirty = true
     renderContent()
   }) : null)
-  const previousDate = daily && edit.dailyDates.filter(day => day < date).at(-1)
-  if (previousDate && !items.length) {
-    controls.append(btn('Kopiraj meni · ' + dateLabel(previousDate), event => action(event, async () => {
+  const dates = daily ? edit.dailyDates.filter(day => day !== date).reverse() : []
+  if (dates.length && !items.length) {
+    const recent = dates.find(day => day < date) || dates[0]
+    const sourceDate = select(recent, Object.fromEntries(dates.map(day => [day, dateLabel(day)])))
+    controls.append(node('div', { className: 'menu-copy' }, label('Kopiraj s shranjenega menija', sourceDate),
+      btn('Kopiraj jedi', event => action(event, async () => {
       const current = edit
-      const source = await api('content?date=' + previousDate)
+      const source = await api('content?date=' + sourceDate.value)
       if (current !== edit || items.length || view !== 'daily') return
-      items.push(...structuredClone(source.daily?.items || []))
+      if (!source.daily?.items.length) throw new Error('Izbrani meni nima jedi.')
+      items.push(...structuredClone(source.daily.items))
       dirty = true
       renderContent()
-    })))
+      say(notice, 'Jedi so kopirane. Meni lahko uredite in objavite.', 'success')
+    }))))
   }
   const write = (event, publish = false) => {
     if (!form.reportValidity()) return
     action(event, () => save({ section: view, date, published: publish, items },
       daily ? (publish ? 'Dnevni meni je objavljen.' : 'Osnutek je shranjen.') : 'Stalna ponudba je posodobljena.'))
   }
-  const dates = daily ? edit.dailyDates.filter(day => day !== date).slice(-8).reverse() : []
-  form.append(controls, ...(dates.length ? [node('details', { className: 'menu-history' }, node('summary', {}, 'Prejšnji meniji'), ...dates.map(day =>
+  form.append(controls, ...(dates.length ? [node('details', { className: 'menu-history' }, node('summary', {}, 'Shranjeni meniji'), ...dates.slice(0, 8).map(day =>
     btn(dateLabel(day), () => go('daily', day), 'button secondary small')))] : []),
     ...items.map((item, index) => editDish(item, () => {
       items.splice(index, 1)
@@ -665,6 +697,7 @@ function tick() {
 tick()
 setInterval(tick, 1000)
 setInterval(() => {
-  if (role && !$('#workspace').hidden && ['overview', 'reservations'].includes(view) && !document.hidden && !dialog.open && !writes) load({ quiet: true })
+  if (role && !$('#workspace').hidden && (view === 'overview' || view === 'reservations' || isPeriodView()) &&
+    !document.hidden && !dialog.open && !writes) load({ quiet: true })
 }, 10_000)
 boot()

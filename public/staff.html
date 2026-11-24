@@ -9,12 +9,13 @@
   <link rel="icon" href="/media/mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/base.css">
   <link rel="stylesheet" href="/owner.css">
+  <link rel="stylesheet" href="/manager.css">
   <link rel="stylesheet" href="/kitchen.css">
   <script type="module" src="/staff.js"></script>
 </head>
 <body class="team">
   <header class="staff-header">
-    <a href="/" class="wordmark team-brand" aria-label="Bistro Kóšta, domov"><span>Kóšta</span><small>Za ekipo</small></a>
+    <a href="/" class="wordmark team-brand" aria-label="Bistro Kóšta, domov"><img src="/media/mark.svg" width="36" height="36" alt=""><span>Kóšta</span><small>Za ekipo</small></a>
     <nav class="staff-links" aria-label="Za ekipo">
       <a href="/" id="public-link">Spletna stran <span aria-hidden="true">↗</span></a>
       <a href="/admin" id="owner-link" hidden>Pult</a>
@@ -44,6 +45,8 @@
           <p>Servis</p>
           <button data-view="overview" type="button">Dnevni pregled</button>
           <button data-view="reservations" type="button">Rezervacije</button>
+          <button data-view="planner" type="button">Planer</button>
+          <button data-view="reports" type="button">Poročila</button>
           <p>Ponudba</p>
           <button data-view="daily" type="button">Dnevni meni</button>
           <button data-view="regular" type="button">Stalna ponudba</button>
