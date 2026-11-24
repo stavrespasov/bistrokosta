@@ -522,7 +522,7 @@ function mediaEditor() {
   }
   galleryForm.append(grid)
   const settings = edit.settings
-  const photos = [['hero', 'Uvodna fotografija'], ['storyPhoto', 'Fotografija ob jedilniku'], ['terracePhoto', 'Fotografija pri obisku']]
+  const photos = [['hero', 'Uvodna fotografija'], ['storyPhoto', 'Fotografija pri zgodbi'], ['terracePhoto', 'Fotografija pri obisku']]
   galleryForm.append(node('fieldset', { className: 'settings-group' },
     node('legend', {}, 'Naslovne fotografije'), node('div', { className: 'fields' }, ...photos.map(([key, title]) =>
       node('div', {}, node('strong', {}, title), photoField(settings[key], url => { settings[key] = url }))))),

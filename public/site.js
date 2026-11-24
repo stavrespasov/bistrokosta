@@ -1,12 +1,12 @@
 import { $, $$, api, dateLabel, mediaPath, node, price, hostedReview } from './ui.js'
 
+import { paintGallery } from './gallery.js'
+import { imageAttributes, mediaBySource } from './media-catalog.js'
+
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)')
 const text = (selector, value) => { $(selector).textContent = value }
-const viewer = $('#photo-viewer')
 let site
 let menuTab = 'daily'
-let gallery = []
-let photoIndex = 0
 
 function paintMenu() {
   if (!site) return
@@ -41,31 +41,6 @@ function paintHours(hours) {
     node('dt', {}, group.last ? group.first + '–' + group.last.toLowerCase() : group.first), node('dd', {}, group.value))))
 }
 
-function showPhoto(index) {
-  photoIndex = (index + gallery.length) % gallery.length
-  const photo = gallery[photoIndex]
-  const image = $('#photo-full')
-  image.src = photo.src
-  image.alt = photo.alt
-  text('#photo-title', photo.alt)
-  text('#photo-count', (photoIndex + 1) + ' / ' + gallery.length)
-}
-
-function paintGallery(photos) {
-  if (viewer.open) viewer.close()
-  gallery = photos.filter(photo => mediaPath(photo.src))
-  $('#galerija').hidden = !gallery.length
-  $('#gallery-more').hidden = gallery.length <= 4
-  $('#gallery').replaceChildren(...gallery.map((photo, index) => node('figure', {},
-    node('a', { href: photo.src, onclick: event => {
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-      event.preventDefault()
-      showPhoto(index)
-      viewer.showModal()
-    } }, node('img', { src: photo.src, loading: 'lazy', alt: photo.alt })),
-    node('figcaption', {}, photo.alt))))
-}
-
 function applySite(next) {
   const previous = site
   site = next
@@ -76,14 +51,22 @@ function applySite(next) {
   ]) {
     if (next.settings[field] !== previous?.settings[field]) text(selector, next.settings[field])
   }
-  for (const [selector, field] of [['#hero-image', 'hero'], ['#story-image', 'storyPhoto'], ['#terrace-image', 'terracePhoto']]) {
+  for (const [selector, field, sizes] of [
+    ['#hero-image', 'hero', '(max-width: 700px) 100vw, 53vw'],
+    ['#story-image', 'storyPhoto', '(max-width: 700px) 100vw, 52vw'],
+    ['#terrace-image', 'terracePhoto', '(max-width: 700px) 100vw, 55vw']
+  ]) {
     const path = next.settings[field]
     const image = $(selector)
-    if (mediaPath(path) && image.getAttribute('src') !== path) {
+    if (!mediaPath(path) || image.getAttribute('src') === path) continue
+    const asset = mediaBySource.get(path)
+    if (asset) Object.assign(image, imageAttributes(asset, sizes))
+    else {
       image.removeAttribute('srcset')
-      image.src = path
+      image.removeAttribute('sizes')
       image.alt = next.gallery.find(photo => photo.src === path)?.alt || 'Fotografija Bistra Kóšta'
     }
+    image.src = path
   }
   if (next.settings.phone !== previous?.settings.phone) {
     for (const link of $$('[data-phone]')) {
@@ -95,7 +78,12 @@ function applySite(next) {
   const weekday = new Date(next.today + 'T12:00:00Z').getUTCDay()
   text('#strip-hours', formatHours(next.settings.hours[weekday]))
   if (JSON.stringify(previous?.settings.hours) !== JSON.stringify(next.settings.hours)) paintHours(next.settings.hours)
-  if (JSON.stringify(previous?.gallery) !== JSON.stringify(next.gallery)) paintGallery(next.gallery)
+  if (JSON.stringify(previous?.gallery) !== JSON.stringify(next.gallery)) {
+    paintGallery(next.gallery)
+    if (!previous && location.hash === '#galerija' && !$('#galerija').hidden) {
+      $('#galerija').scrollIntoView({ behavior: 'instant' })
+    }
+  }
 }
 
 async function refresh() {
@@ -111,21 +99,6 @@ for (const tab of $$('[data-menu]')) tab.addEventListener('click', () => {
   for (const option of $$('[data-menu]')) option.setAttribute('aria-pressed', String(option === tab))
   paintMenu()
   if (!reducedMotion.matches) $('#menu-items').animate([{opacity:.35,transform:'translateY(5px)'},{opacity:1,transform:'none'}], {duration:210,easing:'ease-out'})
-})
-for (const button of $$('[data-photo-delta]')) button.addEventListener('click', () => showPhoto(photoIndex + Number(button.dataset.photoDelta)))
-viewer.addEventListener('keydown', event => {
-  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-    event.preventDefault()
-    showPhoto(photoIndex + (event.key === 'ArrowLeft' ? -1 : 1))
-  }
-})
-viewer.addEventListener('click', event => {
-  if (event.target === viewer) viewer.close()
-})
-$('#gallery-more').addEventListener('click', event => {
-  const expanded = $('#gallery').classList.toggle('expanded')
-  event.currentTarget.setAttribute('aria-expanded', String(expanded))
-  event.currentTarget.textContent = expanded ? 'Pokaži manj −' : 'Vse fotografije +'
 })
 for (const link of $$('.mobile-nav a')) link.addEventListener('click', () => { $('.mobile-nav').open = false })
 if (hostedReview) {

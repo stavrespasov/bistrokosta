@@ -11,17 +11,17 @@
   font-display: swap;
 }
 :root {
-  --paper: #f8f4eb;
+  --paper: #f5f1e7;
   --white: #fffdfa;
-  --ink: #183539;
+  --ink: #15373c;
   --muted: #4f6160;
   --line: #d6d8ca;
-  --deep: #183b3e;
+  --deep: #15373c;
   --deep-hover: #265054;
   --on-deep: #fff8ed;
-  --sea-glass: #e5ede6;
+  --sea-glass: #e0e9e0;
   --sand: #eee7d9;
-  --apricot: #f8c59f;
+  --apricot: #f5c6a3;
   --apricot-hover: #ffdabf;
   --control-line: #a9b6b0;
   --sans: 'Instrument Sans', Arial, sans-serif;
