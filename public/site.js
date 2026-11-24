@@ -51,9 +51,8 @@ function applySite(next) {
   ]) {
     if (next.settings[field] !== previous?.settings[field]) text(selector, next.settings[field])
   }
-  const terracePath = hostedReview && next.settings.terracePhoto === originalTerrace.src
+  const terracePath = next.settings.terracePhoto === originalTerrace.src
     ? terraceVisualization.src : next.settings.terracePhoto
-  $('#obisk').classList.toggle('visit-wide', terracePath === terraceVisualization.src)
   for (const [selector, path, sizes] of [
     ['#hero-image', next.settings.hero, '(max-width: 700px) 100vw, 53vw'],
     ['#story-image', next.settings.storyPhoto, '(max-width: 700px) 100vw, 52vw'],

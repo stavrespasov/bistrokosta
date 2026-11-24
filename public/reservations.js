@@ -7,6 +7,8 @@ const slotStatus = $('#slot-status')
 const retry = $('#retry-times')
 const order = $('#preorder')
 const orderTotal = $('#dish-total')
+const dishList = $('#booking-dishes')
+const menuLoading = $('#menu-loading')
 const notice = $('#booking-error')
 const receipt = $('#receipt')
 const submit = $('button[type="submit"]', form)
@@ -21,6 +23,7 @@ let selectedTime
 let preferredTime
 let slots = []
 let menu = []
+let menuDate
 let quantities = new Map()
 let availabilityRequest
 let submitting = false
@@ -98,35 +101,44 @@ function paintOrder() {
 
 function paintMenu(available) {
   const previous = new Map(menu.map(item => [item.id, item.price]))
-  const list = $('#booking-dishes')
   menu = []
-  list.replaceChildren()
-  for (const [kind, title] of [['daily', 'Dnevni meni'], ['regular', 'Stalna ponudba']]) {
-    const items = available[kind].filter(item => item.preorder && item.price !== null)
-    if (!items.length) continue
-    list.append(node('h3', {}, title))
-    for (const item of items) {
+  dishList.replaceChildren()
+  for (const [kind, title, emptyText] of [
+    ['daily', 'Dnevni meni', 'Dnevni meni za izbrani datum še ni objavljen.'],
+    ['regular', 'Stalna ponudba', 'Stalna ponudba za izbrani termin ni na voljo.']
+  ]) {
+    const heading = node('div', { className: 'booking-menu-heading' }, node('h3', { id: 'menu-' + kind }, title),
+      kind === 'daily' ? node('time', { dateTime: date }, dateLabel(date)) : null)
+    const group = node('section', { className: 'booking-menu-group', 'aria-labelledby': 'menu-' + kind }, heading)
+    if (!available[kind].length) group.append(node('p', { className: 'subtle booking-menu-empty' }, emptyText))
+    for (const item of available[kind]) {
       const id = kind + ':' + item.id
-      menu.push({ ...item, id })
-      const adjust = delta => {
-        quantities.set(id, (quantities.get(id) || 0) + delta)
-        paintOrder()
-      }
-      list.append(node('div', { className: 'dish-line', 'data-dish': id },
-        node('div', {}, node('strong', {}, item.name), node('p', { className: 'subtle' },
-          price(item.price) + (item.allergens ? ' · Alergeni ' + item.allergens : ''))),
-        node('div', { className: 'stepper' },
+      const selectable = item.preorder && item.price !== null
+      let control = node('span', { className: 'dish-unavailable' }, 'V bistroju')
+      if (selectable) {
+        menu.push({ ...item, id })
+        const adjust = delta => {
+          quantities.set(id, (quantities.get(id) || 0) + delta)
+          paintOrder()
+        }
+        control = node('div', { className: 'stepper' },
           button('−', () => adjust(-1), { 'aria-label': 'Odvzemi porcijo: ' + item.name, 'data-adjust': -1 }),
           node('output', { 'aria-label': 'Porcije: ' + item.name }),
-          button('+', () => adjust(1), { 'aria-label': 'Dodaj porcijo: ' + item.name, 'data-adjust': 1 }))))
+          button('+', () => adjust(1), { 'aria-label': 'Dodaj porcijo: ' + item.name, 'data-adjust': 1 }))
+      }
+      group.append(node('div', { className: 'dish-line', ...(selectable ? { 'data-dish': id } : {}) },
+        node('div', {}, node('strong', {}, item.name), node('p', { className: 'subtle' },
+          price(item.price) + (item.allergens ? ' · Alergeni ' + item.allergens : ''))), control))
     }
+    dishList.append(group)
   }
   const current = new Map(menu.map(item => [item.id, item.price]))
   for (const id of quantities.keys()) {
-    if (!current.has(id) || current.get(id) !== previous.get(id)) quantities.delete(id)
+    if ((date !== menuDate && id.startsWith('daily:')) || !current.has(id) || current.get(id) !== previous.get(id)) {
+      quantities.delete(id)
+    }
   }
-  order.hidden = !menu.length
-  if (order.hidden) order.open = false
+  menuDate = date
   paintOrder()
 }
 
@@ -140,7 +152,11 @@ async function loadAvailability({ retainTime = false } = {}) {
   paintTimes()
   paintSummary()
   retry.hidden = true
-  order.inert = true
+  order.hidden = false
+  dishList.hidden = true
+  orderTotal.hidden = true
+  say($('#dish-notice'), '')
+  say(menuLoading, 'Nalagamo meni za izbrani datum …')
   say(slotStatus, 'Preverjamo proste ure …')
   try {
     const result = await api('availability?' + new URLSearchParams({ date, party }), { signal: request.signal })
@@ -152,10 +168,12 @@ async function loadAvailability({ retainTime = false } = {}) {
     paintTimes()
     paintSummary()
     paintMenu(result.menu)
-    order.inert = false
+    dishList.hidden = false
+    say(menuLoading, '')
   } catch (error) {
     if (request.signal.aborted) return
     say(slotStatus, error.message)
+    say(menuLoading, 'Menija trenutno ni mogoče naložiti.')
     retry.hidden = false
   }
 }

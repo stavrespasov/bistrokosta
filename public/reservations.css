@@ -58,7 +58,12 @@
 .booking-disclosure small {font-size:.77rem;font-weight:460;margin-left:5px;color:var(--muted)}
 .booking-disclosure output {font-variant-numeric:tabular-nums}
 .note-label {padding-bottom:7px}
-#booking-dishes h3 {font:650 .77rem var(--sans);letter-spacing:.055em;text-transform:uppercase;color:var(--muted);margin:13px 0 5px}
+#booking-dishes {display:grid;gap:12px;padding-bottom:10px}
+.booking-menu-group {padding:10px 12px;border:1px solid var(--line);background:var(--white)}
+.booking-menu-heading {display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:3px 9px;margin-bottom:6px}
+#booking-dishes h3 {font:650 .94rem/1.35 var(--sans);letter-spacing:-.01em}
+.booking-menu-heading time,.dish-unavailable {font-size:.76rem;color:var(--muted)}
+.booking-menu-empty,#menu-loading {margin:6px 0;font-size:.83rem}
 .dish-line {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);overflow-wrap:anywhere;font-size:.91rem}
 .dish-line .stepper {gap:2px;grid-template-columns:40px minmax(21px,1fr) 40px}
 .dish-line .stepper button {min-width:40px;min-height:44px;font-size:1rem}

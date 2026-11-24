@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#15373c">
   <title>Rezervacija mize · Bistro Kóšta</title>
   <meta name="description" content="Izberite termin in rezervirajte mizo v Bistru Kóšta na Ferrarski ulici v Kopru.">
-  <link rel="icon" href="/media/mark.svg" type="image/svg+xml">
+  <link rel="icon" href="/media/kosta-bowl.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/base.css">
   <link rel="stylesheet" href="/reservations.css">
   <script type="module" src="/reservations.js"></script>
@@ -14,7 +14,7 @@
 <body class="reservation-page">
   <a class="skip" href="#rezervacija">Preskoči na rezervacijo</a>
   <header class="booking-header">
-    <a class="return-link" data-site-link href="/" aria-label="Nazaj na Bistro Kóšta"><span aria-hidden="true">←</span><img src="/media/mark.svg" width="34" height="34" alt=""><span>Bistro Kóšta</span></a>
+    <a class="return-link" data-site-link href="/" aria-label="Nazaj na Bistro Kóšta"><span aria-hidden="true">←</span><img src="/media/kosta-bowl.svg" width="34" height="34" alt=""><span>Bistro Kóšta</span></a>
     <a data-phone class="header-call" href="tel:+38670172114">070 172 114</a>
   </header>
   <main id="rezervacija">
@@ -76,6 +76,7 @@
             </details>
             <details id="preorder" class="booking-disclosure preorder" hidden>
               <summary><span>Prednaroči jedi <small>Po želji</small></span><output id="dish-total" hidden></output></summary>
+              <p id="menu-loading" class="subtle" role="status" hidden></p>
               <div id="booking-dishes"></div>
               <p id="dish-notice" class="subtle" role="status" hidden></p>
             </details>
