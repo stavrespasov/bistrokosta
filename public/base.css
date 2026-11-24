@@ -11,12 +11,19 @@
   font-display: swap;
 }
 :root {
-  --paper: #f7f6f0;
-  --white: #fffefa;
-  --ink: #252b24;
-  --muted: #60635a;
-  --line: #dadbd1;
-  --gold: #ffcf85;
+  --paper: #f8f4eb;
+  --white: #fffdfa;
+  --ink: #183539;
+  --muted: #4f6160;
+  --line: #d6d8ca;
+  --deep: #183b3e;
+  --deep-hover: #265054;
+  --on-deep: #fff8ed;
+  --sea-glass: #e5ede6;
+  --sand: #eee7d9;
+  --apricot: #f8c59f;
+  --apricot-hover: #ffdabf;
+  --control-line: #a9b6b0;
   --sans: 'Instrument Sans', Arial, sans-serif;
   --display: Gloock, Georgia, serif;
   --edge: clamp(20px, 5.1vw, 92px);
@@ -44,9 +51,9 @@ a {color:inherit}
   font-weight:650;font-size:.95rem;line-height:1.2;text-align:center;text-decoration:none;
   border-radius:4px;transition:background .2s,color .2s,border-color .2s;
 }
-.primary {background:var(--gold);border-color:var(--gold);color:#272618}
-.primary:hover:not(:disabled) {background:#ffdfa9;border-color:#ffdfa9}
-.secondary:hover:not(:disabled) {background:#eeeee3}
+.primary {background:var(--apricot);border-color:var(--apricot);color:var(--ink)}
+.primary:hover:not(:disabled) {background:var(--apricot-hover);border-color:var(--apricot-hover)}
+.secondary:hover:not(:disabled) {background:var(--sea-glass)}
 .small {font-size:.83rem}
 .plain,.text-link {
   background:none;border:0;padding:0;min-height:40px;color:inherit;font-weight:650;text-decoration:none;
