@@ -10,8 +10,6 @@ const orderTotal = $('#dish-total')
 const notice = $('#booking-error')
 const receipt = $('#receipt')
 const submit = $('button[type="submit"]', form)
-const dateJump = $('#choose-date')
-const nextOpen = $('#next-open')
 const dayCount = 4
 const dayFormatter = new Intl.DateTimeFormat('sl-SI', { weekday: 'short', timeZone: 'UTC' })
 const monthFormatter = new Intl.DateTimeFormat('sl-SI', { month: 'long', year: 'numeric', timeZone: 'UTC' })
@@ -37,13 +35,6 @@ const plusDays = (iso, count) => {
 const guests = count => count + (count === 1 ? ' gost' : count === 2 ? ' gosta' : count <= 4 ? ' gostje' : ' gostov')
 const button = (label, action, attributes = {}) => node('button', { type: 'button', onclick: action, ...attributes }, label)
 
-function selectDay(day) {
-  date = day
-  dateJump.value = date
-  setCalendar(day < calendarStart || day >= plusDays(calendarStart, dayCount) ? day : calendarStart)
-  loadAvailability()
-}
-
 function setCalendar(start = calendarStart) {
   calendarStart = start
   const days = Array.from({ length: dayCount }, (_, index) => plusDays(start, index)).filter(day => day <= site.lastDate)
@@ -55,8 +46,9 @@ function setCalendar(start = calendarStart) {
     type: 'button', 'data-date': day, 'aria-pressed': day === date, 'aria-label': dateLabel(day),
     onclick: () => {
       if (date === day) return
-      selectDay(day)
-      dayList.querySelector('[aria-pressed=true]')?.focus({ preventScroll: true })
+      date = day
+      for (const option of $$('[data-date]', dayList)) option.setAttribute('aria-pressed', String(option.dataset.date === date))
+      loadAvailability()
     }
   }, node('span', {}, day === site.today ? 'Danes' : dayFormatter.format(asDate(day))),
   node('strong', {}, String(asDate(day).getUTCDate())))))
@@ -94,10 +86,7 @@ function paintOrder() {
   const selected = selection()
   const portionCount = selected.reduce((sum, item) => sum + item.quantity, 0)
   orderTotal.hidden = !portionCount
-  const totalPrice = price(selected.reduce((sum, item) => sum + item.quantity * item.quotedPrice, 0))
-  orderTotal.textContent = totalPrice
-  const orderText = menu.filter(item => quantities.get(item.id)).map(item => quantities.get(item.id) + ' × ' + item.name).join(', ')
-  say($('#order-summary'), orderText ? orderText + ' · ' + totalPrice : '')
+  orderTotal.textContent = price(selected.reduce((sum, item) => sum + item.quantity * item.quotedPrice, 0))
   for (const row of $$('[data-dish]', order)) {
     const quantity = quantities.get(row.dataset.dish) || 0
     $('output', row).textContent = quantity
@@ -141,7 +130,7 @@ function paintMenu(available) {
   paintOrder()
 }
 
-async function loadAvailability({ retainTime = false, findNext = false } = {}) {
+async function loadAvailability({ retainTime = false } = {}) {
   availabilityRequest?.abort()
   const request = new AbortController()
   availabilityRequest = request
@@ -151,28 +140,11 @@ async function loadAvailability({ retainTime = false, findNext = false } = {}) {
   paintTimes()
   paintSummary()
   retry.hidden = true
-  nextOpen.hidden = true
   order.inert = true
-  say(slotStatus, findNext ? 'Iščemo prvi prost termin …' : 'Preverjamo proste ure …')
+  say(slotStatus, 'Preverjamo proste ure …')
   try {
-    let serviceDate = findNext ? plusDays(date, 1) : date
-    let result
-    while (serviceDate <= site.lastDate) {
-      result = await api('availability?' + new URLSearchParams({ date: serviceDate, party }), { signal: request.signal })
-      if (request.signal.aborted) return
-      if (result.slots.length || !findNext) break
-      serviceDate = plusDays(serviceDate, 1)
-    }
-    if (findNext && !result?.slots.length) {
-      say(slotStatus, 'V obdobju za spletne rezervacije ni prostih ur za izbrano število gostov.')
-      return
-    }
-    if (serviceDate !== date) {
-      date = serviceDate
-      dateJump.value = date
-      setCalendar(date)
-    }
-    nextOpen.hidden = result.slots.length > 0 || date === site.lastDate
+    const result = await api('availability?' + new URLSearchParams({ date, party }), { signal: request.signal })
+    if (request.signal.aborted) return
     slots = result.slots
     if (slots.includes(preferredTime)) selectedTime = preferredTime
     else preferredTime = undefined
@@ -202,17 +174,16 @@ function renderReceipt(result) {
   form.hidden = true
   const pending = result.status === 'pending'
   const message = hostedReview ? 'Poskusna rezervacija je shranjena. Preverite jo v pultu in kuhinji.'
-    : pending ? (result.confirmationChannel === 'phone' ? 'Za potrditev mize vas pokličemo na ' + form.elements.phone.value + '.' : 'Po potrditvi vam pišemo na ' + form.elements.email.value + '.')
+    : pending ? (result.confirmationChannel === 'phone' ? 'Za potrditev termina vas bomo poklicali.' : 'Potrditev vam pošljemo po e-pošti.')
     : result.emailStatus === 'sent' ? 'Potrditev smo poslali na vaš e-poštni naslov.' : 'Vaša miza je potrjena.'
   receipt.replaceChildren(node('div', { className: 'receipt-mark', 'aria-hidden': true }, '✓'),
-    node('h2', { id: 'receipt-title', tabIndex: -1 }, hostedReview ? 'Preizkus je uspel.' : pending ? 'Povpraševanje prejeto.' : 'Miza je rezervirana.'),
+    node('h2', { id: 'receipt-title', tabIndex: -1 }, hostedReview ? 'Preizkus je uspel.' : pending ? 'Zahteva je prejeta.' : 'Miza je rezervirana.'),
     node('p', {}, dateLabel(result.date) + ' · ' + result.time + ' · ' + guests(result.party)),
     node('p', {}, message),
     node('p', { className: 'receipt-reference' }, 'Številka rezervacije ', node('strong', {}, result.reference)),
     hostedReview
-      ? node('a', { className: 'button primary', href: '/admin?demo=1&view=reservations&date=' + result.date }, 'Odpri pult')
+      ? node('a', { className: 'button primary', href: '/admin?demo=1&view=reservations&date=' + result.date }, 'Odpri pult ↗')
       : node('a', { className: 'button secondary', href: '/' }, 'Nazaj na Bistro Kóšta'))
-  if (!$('#order-summary').hidden) receipt.insertBefore(node('p', {}, $('#order-summary').textContent), $('.receipt-reference', receipt))
   receipt.hidden = false
   $('#receipt-title').focus()
 }
@@ -235,7 +206,6 @@ form.addEventListener('submit', async event => {
   if (attempt?.fingerprint !== fingerprint) attempt = { fingerprint, key: crypto.randomUUID() }
   submitting = true
   submit.disabled = true
-  submit.textContent = 'Pošiljamo …'
   $('.reservation-layout').inert = true
   say(notice, '')
   try {
@@ -246,19 +216,11 @@ form.addEventListener('submit', async event => {
   } finally {
     submitting = false
     submit.disabled = false
-    submit.textContent = 'Pošlji povpraševanje'
     $('.reservation-layout').inert = false
   }
 })
 
-dateJump.addEventListener('change', () => {
-  if (dateJump.value && dateJump.reportValidity()) selectDay(dateJump.value)
-})
-nextOpen.addEventListener('click', () => loadAvailability({ findNext: true }))
-$('#calendar-prev').addEventListener('click', () => {
-  const prev = plusDays(calendarStart, -dayCount)
-  setCalendar(prev < site.today ? site.today : prev)
-})
+$('#calendar-prev').addEventListener('click', () => setCalendar(plusDays(calendarStart, -dayCount)))
 $('#calendar-next').addEventListener('click', () => setCalendar(plusDays(calendarStart, dayCount)))
 for (const adjust of $$('[data-party]')) adjust.addEventListener('click', () => {
   party += Number(adjust.dataset.party)
@@ -284,14 +246,11 @@ async function start() {
       return
     }
     date = site.today
-    dateJump.min = site.today
-    dateJump.max = site.lastDate
-    dateJump.value = date
     party = Math.min(site.settings.maxParty, 2)
     setCalendar(date)
     paintParty()
     $('#confirm-method').textContent = hostedReview ? 'Predogled shrani zahtevo samo v tem brskalniku.'
-      : site.confirmationChannel === 'phone' ? 'Za potrditev mize vas pokličemo na vpisano številko.' : 'Potrditev termina prejmete po e-pošti.'
+      : site.confirmationChannel === 'phone' ? 'Termin vam potrdimo po telefonu.' : 'Potrditev termina prejmete po e-pošti.'
     form.hidden = false
     loadAvailability()
   } catch (error) {

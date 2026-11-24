@@ -25,52 +25,6 @@ function paintMenu() {
       : node('p', { className: 'empty' }, 'Za ponudbo nas pokličite.'))
 }
 
-function updateGalleryIndex() {
-  const track = $('#gallery')
-  const index = $('#gallery-index')
-  const plates = $$('.gallery-plate', track)
-  track.dataset.lastLandscape = plates.at(-1)?.dataset.landscape || 'true'
-  const previousSource = index.contains(document.activeElement) ? document.activeElement.dataset.source : null
-  index.replaceChildren(...plates.map(plate => {
-    const image = $('img', plate)
-    const title = $('figcaption', plate).textContent
-    const catalogPhoto = mediaBySource.get(image.getAttribute('src'))
-    const source = image.getAttribute('src')
-    image.sizes = plate.dataset.landscape === 'true' ? '(max-width: 700px) 91vw, 80vw' : '(max-width: 700px) 91vw, 64svh'
-    const button = node('button', {
-      type: 'button', 'aria-label': title, 'aria-controls': 'gallery', 'data-source': source,
-      onclick: () => track.scrollTo({
-        left: plate.offsetLeft - plates[0].offsetLeft,
-        behavior: reducedMotion.matches ? 'instant' : 'smooth'
-      })
-    }, node('img', { src: catalogPhoto?.small || source, alt: '', loading: 'lazy', decoding: 'async' }))
-    return button
-  }))
-  index.hidden = plates.length < 2
-  syncGalleryIndex()
-  if (previousSource) Array.from(index.children).find(button => button.dataset.source === previousSource)?.focus({ preventScroll: true })
-}
-
-function syncGalleryIndex() {
-  const index = $('#gallery-index')
-  const current = Number($('#gallery-count').textContent.split('/')[0]) - 1
-  Array.from(index.children).forEach((button, position) => {
-    if (position === current) button.setAttribute('aria-current', 'true')
-    else button.removeAttribute('aria-current')
-  })
-  // Keep the selected thumbnail within its own scroller on narrow screens.
-  const selected = index.children[current]
-  if (selected && index.scrollWidth > index.clientWidth) {
-    const x = selected.offsetLeft - index.scrollLeft
-    if (x < 0 || x + selected.offsetWidth > index.clientWidth) {
-      index.scrollTo({ left: selected.offsetLeft - (index.clientWidth - selected.offsetWidth) / 2,
-        behavior: reducedMotion.matches ? 'instant' : 'smooth' })
-    }
-  }
-}
-
-new MutationObserver(syncGalleryIndex).observe($('#gallery-count'), { childList: true })
-
 function formatHours(periods) {
   return periods.map(pair => pair.join('–').replaceAll(':', '.')).join(' · ') || 'Zaprto'
 }
@@ -104,8 +58,8 @@ function applySite(next) {
   $('#terrace-caption').hidden = !showVisualization
   if (showVisualization) text('#terrace-caption', terraceVisualization.title)
   for (const [selector, path, sizes] of [
-    ['#hero-image', next.settings.hero, '100vw'],
-    ['#story-image', next.settings.storyPhoto, '(max-width: 700px) 100vw, 63vw'],
+    ['#hero-image', next.settings.hero, '(max-width: 700px) 100vw, 53vw'],
+    ['#story-image', next.settings.storyPhoto, '(max-width: 700px) 100vw, 52vw'],
     ['#terrace-image', terracePath, '(max-width: 700px) 94vw, min(94vw, 142svh, 1480px)']
   ]) {
     const image = $(selector)
@@ -131,7 +85,6 @@ function applySite(next) {
   if (JSON.stringify(previous?.settings.hours) !== JSON.stringify(next.settings.hours)) paintHours(next.settings.hours)
   if (JSON.stringify(previous?.gallery) !== JSON.stringify(next.gallery)) {
     paintGallery(next.gallery)
-    updateGalleryIndex()
   }
   if (!previous && ['#galerija', '#obisk'].includes(location.hash)) {
     const target = $(location.hash)
