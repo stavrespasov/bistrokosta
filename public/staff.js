@@ -74,7 +74,6 @@ async function action(event, operation, done) {
 function go(next, nextDate = date, reference = '') {
   if (dirty && !confirm('Neshranjene spremembe bodo izgubljene. Želite nadaljevati?')) {
     dateInput.value = date
-    $('#mobile-view').value = view
     return
   }
   dirty = false
@@ -92,7 +91,6 @@ function go(next, nextDate = date, reference = '') {
   $('#owner-link').href = '/admin?' + (hostedReview ? 'demo=1&' : '') + 'date=' + date
   say(notice, '')
   for (const button of $$('[data-view]')) button.setAttribute('aria-pressed', button.dataset.view === view)
-  $('#mobile-view').value = view
   document.title = (kitchen ? 'Kuhinja' : titles[view]) + ' · Bistro Kóšta'
   $('#staff-title').textContent = kitchen ? 'Kuhinjski servis' : titles[view]
   $('#date-control').hidden = !['overview', 'reservations', 'daily'].includes(view)
@@ -524,7 +522,7 @@ function mediaEditor() {
   }
   galleryForm.append(grid)
   const settings = edit.settings
-  const photos = [['hero', 'Uvodna fotografija'], ['storyPhoto', 'Fotografija pri zgodbi'], ['terracePhoto', 'Fotografija pri obisku']]
+  const photos = [['hero', 'Uvodna fotografija'], ['storyPhoto', 'Fotografija ob jedilniku'], ['terracePhoto', 'Fotografija pri obisku']]
   galleryForm.append(node('fieldset', { className: 'settings-group' },
     node('legend', {}, 'Naslovne fotografije'), node('div', { className: 'fields' }, ...photos.map(([key, title]) =>
       node('div', {}, node('strong', {}, title), photoField(settings[key], url => { settings[key] = url }))))),
@@ -648,7 +646,6 @@ $('#logout').addEventListener('click', async () => {
 for (const button of $$('[data-view]')) button.addEventListener('click', () => {
   if (view !== button.dataset.view) go(button.dataset.view)
 })
-$('#mobile-view').addEventListener('change', event => go(event.currentTarget.value))
 function adjacentDay(offset) {
   const day = new Date(date + 'T12:00:00Z')
   day.setUTCDate(day.getUTCDate() + offset)

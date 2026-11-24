@@ -7,6 +7,7 @@
   "rewrites": [
     { "source": "/admin", "destination": "/staff.html" },
     { "source": "/kitchen", "destination": "/staff.html" },
+    { "source": "/rezervacije", "destination": "/reservations.html" },
     { "source": "/api/:route*", "destination": "/api/handler?route=:route*" }
   ],
   "headers": [

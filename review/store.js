@@ -8,8 +8,8 @@ let connection
 function sampleService() {
   const state = initialState(true)
   const [today] = localClock()
-  for (const day of [today, addDays(today, 1)]) {
-    state.daily[day] = { published: true, items: structuredClone(exampleMenu) }
+  for (let offset = 0; offset < 7; offset++) {
+    state.daily[addDays(today, offset)] = { published: true, items: structuredClone(exampleMenu) }
   }
   state.reservations.push({
     id: crypto.randomUUID(), reference: 'DEMO-04', date: today, time: '12:30',

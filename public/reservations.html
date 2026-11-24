@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="sl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#252b24">
+  <title>Rezervacija mize · Bistro Kóšta</title>
+  <meta name="description" content="Izberite termin in rezervirajte mizo v Bistru Kóšta na Ferrarski ulici v Kopru.">
+  <link rel="icon" href="/media/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/base.css">
+  <link rel="stylesheet" href="/reservations.css">
+  <script type="module" src="/reservations.js"></script>
+</head>
+<body class="reservation-page">
+  <a class="skip" href="#rezervacija">Preskoči na rezervacijo</a>
+  <header class="booking-header">
+    <a class="return-link" data-site-link href="/" aria-label="Nazaj na Bistro Kóšta"><span aria-hidden="true">←</span><span>Bistro Kóšta</span></a>
+    <a data-phone class="header-call" href="tel:+38670172114">070 172 114</a>
+  </header>
+  <main id="rezervacija">
+    <div class="booking-hero">
+      <div class="booking-wrap">
+        <div><p class="eyebrow">Bistro Kóšta · Koper</p><h1>Rezerviraj mizo.</h1></div>
+        <p id="booking-address">Ferrarska ulica 5B,<br> 6000 Koper</p>
+      </div>
+    </div>
+    <div class="booking-wrap booking-content">
+      <p id="booking-unavailable" class="empty" role="status">Preverjamo proste termine …</p>
+      <section id="phone-booking" hidden>
+        <h2>Pokličite za mizo</h2>
+        <p>Rezervacije trenutno sprejemamo po telefonu.</p>
+        <a class="button primary" data-phone href="tel:+38670172114">070 172 114</a>
+        <a class="text-link" href="/rezervacije?demo=1">Preizkusi spletno rezervacijo</a>
+      </section>
+      <form id="booking-form" novalidate hidden>
+        <p class="review-only demo-note">Poskusna rezervacija. Vnesite izmišljene podatke.</p>
+        <div class="reservation-layout">
+          <section class="reservation-time" aria-labelledby="time-title">
+            <h2 id="time-title">Kdaj pridete?</h2>
+            <div class="guest-count">
+              <span id="party-label">Gostje</span>
+              <div class="stepper" role="group" aria-labelledby="party-label">
+                <button data-party="-1" type="button" aria-label="En gost manj">−</button>
+                <output id="guest-count" aria-live="polite" aria-label="Število gostov">2</output>
+                <button data-party="1" type="button" aria-label="En gost več">+</button>
+              </div>
+            </div>
+            <fieldset class="calendar">
+              <legend class="sr-only">Dan obiska</legend>
+              <div class="calendar-head">
+                <p id="calendar-period" aria-live="polite"></p>
+                <div class="calendar-nav">
+                  <button type="button" id="calendar-prev" aria-label="Prejšnji dnevi">‹</button>
+                  <button type="button" id="calendar-next" aria-label="Naslednji dnevi">›</button>
+                </div>
+              </div>
+              <div id="calendar-days"></div>
+            </fieldset>
+            <fieldset class="hours-picker" id="time-field">
+              <legend>Proste ure</legend>
+              <p id="slot-status" role="status" hidden></p>
+              <div id="times"></div>
+              <button class="text-link" type="button" id="retry-times" hidden>Preveri znova</button>
+            </fieldset>
+          </section>
+          <section class="reservation-contact" aria-labelledby="contact-title">
+            <h2 id="contact-title">Vaši podatki</h2>
+            <div class="fields">
+              <label>Ime in priimek<input name="name" autocomplete="name" required maxlength="90"></label>
+              <label>Telefon<input name="phone" type="tel" autocomplete="tel" required maxlength="32"></label>
+              <label>E-pošta<input name="email" type="email" autocomplete="email" required maxlength="180"></label>
+            </div>
+            <details class="booking-disclosure">
+              <summary>Dodaj opombo</summary>
+              <label class="note-label"><span class="sr-only">Opomba za bistro</span><textarea name="notes" rows="2" maxlength="500" placeholder="Npr. alergija ali otroški stolček"></textarea></label>
+            </details>
+            <details id="preorder" class="booking-disclosure preorder" hidden>
+              <summary><span>Prednaroči jedi <small>Po želji</small></span><output id="dish-total" hidden></output></summary>
+              <div id="booking-dishes"></div>
+              <p id="dish-notice" class="subtle" role="status" hidden></p>
+            </details>
+            <label class="check consent"><input type="checkbox" name="consent" required><span>Soglašam z uporabo kontaktnih podatkov za urejanje rezervacije.</span></label>
+          </section>
+        </div>
+        <div class="booking-checkout">
+          <div><p id="booking-summary" aria-live="polite"></p><p id="confirm-method" class="subtle"></p></div>
+          <button type="submit" class="button primary">Pošlji zahtevo <span aria-hidden="true">↗</span></button>
+        </div>
+        <p id="booking-error" class="error" role="alert" hidden></p>
+      </form>
+      <section id="receipt" aria-labelledby="receipt-title" hidden></section>
+    </div>
+  </main>
+</body>
+</html>

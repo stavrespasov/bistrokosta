@@ -7,7 +7,7 @@ import handler from './api/handler.js'
 
 const root = resolve('public')
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.webp': 'image/webp', '.woff2': 'font/woff2', '.svg': 'image/svg+xml' }
-const pages = { '/': '/index.html', '/admin': '/staff.html', '/kitchen': '/staff.html' }
+const pages = { '/': '/index.html', '/admin': '/staff.html', '/kitchen': '/staff.html', '/rezervacije': '/reservations.html' }
 
 const server = createServer(async (req, res) => {
   const path = new URL(req.url, 'http://localhost').pathname

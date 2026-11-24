@@ -1,12 +1,12 @@
 /* One dark, high-contrast surface keeps the service display comfortable across a shift. */
 body.kitchen {
-  --k-bg: #132823;
-  --k-surface: #1c342d;
-  --k-lifted: #244038;
-  --k-ink: #f3f1e7;
-  --k-muted: #becbc0;
-  --k-rule: #3e584d;
-  --k-sage: #d0dfc0;
+  --k-bg: #222821;
+  --k-surface: #30382c;
+  --k-lifted: #3b4537;
+  --k-ink: #fffae9;
+  --k-muted: #d6dbc9;
+  --k-rule: #566150;
+  --k-highlight: #ffcf85;
   color-scheme: dark;
   background: var(--k-bg);
   color: var(--k-ink);
@@ -26,9 +26,9 @@ body.kitchen {
 .kitchen main,.kitchen #workspace,.kitchen .work-main {background: var(--k-bg);color: var(--k-ink)}
 .kitchen .work-main {min-width:0}
 .kitchen .staff-title {border-color: var(--k-rule);color:var(--k-ink)}
-.kitchen .staff-title h1 {color:var(--k-ink);font-weight:440}
+.kitchen .staff-title h1 {color:var(--k-ink);font-weight:400}
 .kitchen .staff-title .eyebrow,.kitchen .staff-tools label,.kitchen #workspace .demo-note {color:var(--k-muted)}
-.kitchen .staff-tools time {font:560 clamp(1.35rem,2.6vw,2.2rem)/1.1 var(--sans);color:var(--k-sage);font-variant-numeric:tabular-nums}
+.kitchen .staff-tools time {font:560 clamp(1.35rem,2.6vw,2.2rem)/1.1 var(--sans);color:var(--k-highlight);font-variant-numeric:tabular-nums}
 .kitchen input[type=date],.kitchen .staff-tools .button,.kitchen select.k-filter {
   background:var(--k-lifted);
   border:1px solid var(--k-rule);
@@ -42,7 +42,7 @@ body.kitchen {
   border-color:var(--k-rule);
   color:var(--k-ink);
 }
-.kitchen :focus-visible {outline:2px solid var(--k-sage);outline-offset:3px}
+.kitchen :focus-visible {outline:2px solid var(--k-highlight);outline-offset:3px}
 .kitchen #panel {min-width:0}
 .kitchen .stats.k-stats {
   display:grid;
@@ -52,7 +52,7 @@ body.kitchen {
   border:0;
   box-shadow:none;
   background:var(--k-surface);
-  border-radius:14px;
+  border-radius:7px;
   gap:0;
 }
 .k-metric {
@@ -71,12 +71,12 @@ body.kitchen {
   color:var(--k-ink);
   margin:0;
 }
-.k-metric:first-child dd {color:var(--k-sage)}
+.k-metric:first-child dd {color:var(--k-highlight)}
 .k-worklist {display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,.8fr);gap:clamp(20px,3.5vw,60px);align-items:start}
 .k-orders,.kitchen .prep-plan {min-width:0;padding:0;border:0;margin:0;background:transparent;box-shadow:none}
 .k-section-heading {min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .k-section-heading h2,.kitchen .prep-plan h2 {
-  font:430 clamp(1.6rem,2.35vw,2.4rem)/1.13 var(--display);
+  font:400 clamp(1.6rem,2.35vw,2.4rem)/1.13 var(--display);
   letter-spacing:-.035em;
   margin:0;
   color:var(--k-ink);
@@ -85,7 +85,7 @@ body.kitchen {
 .kitchen .kitchen-board,.k-history[open] {display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
 .kitchen .kitchen-card {
   border:1px solid var(--k-rule);
-  border-radius:14px;
+  border-radius:7px;
   box-shadow:none;
   background:var(--k-surface);
   color:var(--k-ink);
@@ -103,12 +103,12 @@ body.kitchen {
 .k-state {
   padding:4px 10px;
   border-radius:20px;
-  background:#344b40;
-  color:#e3e9df;
+  background:#43503c;
+  color:#f7f6e7;
   font:620 .8rem/1.45 var(--sans);
 }
-.kitchen-card[data-state=preparing] .k-state {background:#554b31;color:#fae4ad}
-.kitchen-card[data-state=ready] .k-state {background:#bad6ae;color:#193a23}
+.kitchen-card[data-state=preparing] .k-state {background:#624a25;color:#fae4ad}
+.kitchen-card[data-state=ready] .k-state {background:#e8edce;color:#263c20}
 .kitchen ul.k-order,.kitchen ul.k-prep-items {list-style:none;margin:0;padding:0}
 .kitchen ul.k-order {border-top:1px solid var(--k-rule);margin-top:15px;padding-top:9px}
 .kitchen .k-order li,.kitchen .k-prep-items li {
@@ -122,24 +122,24 @@ body.kitchen {
   font-weight:600;
   border:0;
 }
-.k-quantity {color:var(--k-sage);white-space:nowrap;font-variant-numeric:tabular-nums}
+.k-quantity {color:var(--k-highlight);white-space:nowrap;font-variant-numeric:tabular-nums}
 .k-dish small {display:block;margin-top:3px;color:var(--k-muted);font:500 .82rem/1.45 var(--sans)}
 .k-on-arrival {color:var(--k-muted);margin:16px 0}
-.k-note {padding:10px 13px;margin:10px 0 0;border-inline-start:2px solid #d2c996;background:#293e34;color:#e9e7d5;font-size:.95rem;line-height:1.5}
+.k-note {padding:10px 13px;margin:10px 0 0;border-inline-start:2px solid #ffcf85;background:#3c4837;color:#fff3db;font-size:.95rem;line-height:1.5}
 .k-ticket-foot:not(:empty) {margin-top:16px}
 .k-advance {
   margin-inline-start:auto;
   min-height:46px;
   max-width:100%;
-  background:var(--k-sage);
+  background:var(--k-highlight);
   border:0;
   border-radius:8px;
-  color:#1c3528;
+  color:#282618;
   padding:9px 17px;
   font:670 .96rem/1.35 var(--sans);
   transition:background .16s;
 }
-.k-advance:hover:not(:disabled) {background:#e8efd9}
+.k-advance:hover:not(:disabled) {background:#ffe1ad}
 .k-history {margin-top:26px}
 .k-history summary {padding:11px 0;color:var(--k-muted);cursor:pointer;font-weight:630}
 .k-history .kitchen-card {background:transparent}
@@ -147,7 +147,7 @@ body.kitchen {
 .k-schedule {border-top:1px solid var(--k-rule)}
 .kitchen .prep-slot {padding:16px 0;border:0;border-bottom:1px solid var(--k-rule);display:block}
 .kitchen .prep-slot h3 {margin:0 0 8px;font:630 1.1rem/1.2 var(--sans);font-variant-numeric:tabular-nums}
-.kitchen .prep-slot time {color:var(--k-sage);font:inherit}
+.kitchen .prep-slot time {color:var(--k-highlight);font:inherit}
 .kitchen .k-prep-items li {font-weight:510;font-size:1rem}
 .k-empty {color:var(--k-muted);border-block-start:1px solid var(--k-rule);margin:0;padding:18px 0;line-height:1.5}
 @media(max-width:800px) {
@@ -185,3 +185,9 @@ body.kitchen {
   .k-switch button[aria-pressed=true] {background:var(--k-lifted);color:var(--k-ink)}
   .k-worklist[data-view=orders] .prep-plan,.k-worklist[data-view=schedule] .k-orders {display:none}
 }
+
+.kitchen .staff-title {padding-bottom:16px;border-bottom:1px solid var(--k-rule)}
+.kitchen .date-control {background:var(--k-surface);border-color:var(--k-rule)}
+.kitchen .date-control input {color:var(--k-ink)}
+.kitchen .kitchen-card[data-state=preparing] {border-color:#b89553}
+.kitchen .kitchen-card[data-state=ready] {border-color:#adc29d}
