@@ -107,3 +107,15 @@
 @media(prefers-reduced-motion:reduce){
   .table-photo img,.table-seal img{animation:none}
 }
+@media(min-width:761px) and (max-width:1050px) {
+  .table-cover::before {
+    background:linear-gradient(180deg,#112820b8,transparent 32%,transparent 52%,#141e17b0),
+      linear-gradient(90deg,#10251ed4 0%,#17281fb8 37%,#17281f62 56%,transparent 78%);
+  }
+  .table-copy #intro {max-width:32ch}
+}
+@media(max-height:510px) and (min-width:550px){
+  .table-cover {min-height:460px;padding-block:88px 26px}
+  .table-copy h1 i{font-size:3.3rem}.table-copy h1>span{font-size:6.25rem}
+  .table-copy #intro{margin:10px 0 12px}
+}
